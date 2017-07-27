@@ -330,7 +330,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
         return "";
     }
 
-
     @SuppressWarnings("unchecked")
     public static <T extends Tableable> ArrayList<T> all(String tableName) {
         return sqLiteManager.selectAll(tableName, Utils.getTableClass(tableName, sqLiteManager.tableTypesList), null, null, null, null, null, null);
