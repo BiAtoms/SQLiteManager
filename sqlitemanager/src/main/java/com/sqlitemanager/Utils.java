@@ -17,7 +17,7 @@ public class Utils {
 
     static String getMemberColumnName(Field field) {
         Column anno = field.getAnnotation(Column.class);
-        if (anno.value().equals(ColumnAnnotationModel.defaultValue)) return field.getName();
+        if (anno.value().equals(ColumnAnnotationModel.getDefaultValue())) return field.getName();
         return anno.value();
     }
 
