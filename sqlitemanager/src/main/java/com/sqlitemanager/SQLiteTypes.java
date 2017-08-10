@@ -5,15 +5,23 @@ package com.sqlitemanager;
  */
 
 public enum SQLiteTypes {
-    INT("int", "INTEGER"),
+    INTEGER("int", "INTEGER"),
+    INTEGER_NULLABLE("Integer", "INTEGER"),
     STRING("String", "TEXT"),
     DOUBLE("double", "DECIMAL(10, 5)"),
+    DOUBLE_NULLABLE("Double", "DECIMAL(10, 5)"),
     FLOAT("float", "DECIMAL(10, 5)"),
+    FLOAT_NULLABLE("Float", "DECIMAL(10, 5)"),
     SHORT("short", "INTEGER"),
+    SHORT_NULLABLE("Short", "INTEGER"),
     LONG("long", "INTEGER"),
+    LONG_NULLABLE("Long", "INTEGER"),
     CHAR("char", "TEXT"),
+    CHAR_NULLABLE("Char", "TEXT"),
     BYTE("byte", "BLOB"),
-    BOOLEAN("boolean", "INTEGER");
+    BYTE_NULLABLE("Byte", "BLOB"),
+    BOOLEAN("boolean", "INTEGER"),
+    BOOLEAN_NULLABLE("Boolean", "INTEGER");
 
     private String javaType;
     private String SQLiteType;
