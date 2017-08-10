@@ -37,7 +37,7 @@ public class DriverModel  extends AbstractTableModel {
     public String email;
 
     @Column("carId")
-    @ForeignKey(refTableName = "cars", refColumnName = "id")
+    @ForeignKey
     public CarModel carModel;
 
     //Todo: We need to add a feature to Foreign Key. If the original data

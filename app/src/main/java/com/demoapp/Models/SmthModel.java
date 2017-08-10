@@ -30,6 +30,6 @@ public class SmthModel  extends AbstractTableModel {
 
     @Column
     @Default("3") //Todo: Default for other datatypes does not work! Only for Strings
-     int asda;
+     Integer asda;
 
 }

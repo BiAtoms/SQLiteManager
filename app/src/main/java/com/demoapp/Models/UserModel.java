@@ -32,6 +32,6 @@ public class UserModel extends AbstractTableModel {
 
     @Column
     @Default("31")
-    public int age;
+    public Integer age;
 
 }

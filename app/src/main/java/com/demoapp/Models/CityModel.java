@@ -32,5 +32,4 @@ public class CityModel  extends AbstractTableModel {
 
     @Column("additional_info")
     public String additionalInfo;
-
 }
