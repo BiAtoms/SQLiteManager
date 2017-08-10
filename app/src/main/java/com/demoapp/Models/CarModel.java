@@ -1,5 +1,6 @@
 package com.demoapp.Models;
 
+import com.sqlitemanager.AbstractTableModel;
 import com.sqlitemanager.Annotations.Column;
 import com.sqlitemanager.Annotations.NotNull;
 import com.sqlitemanager.Annotations.PrimaryKey;
@@ -13,36 +14,24 @@ import com.sqlitemanager.Tableable;
  */
 
 @TableName("cars")
-public class CarModel implements Tableable {
+public class CarModel extends AbstractTableModel{
+
+    //Todo: Apply Encapsulation before first official release
 
     @Column()
     @PrimaryKey
     public int id;
 
-
     @Column("release_date")
     public String releaseDate;
 
-    @Column()
+    @Column
     public String model;
 
-    @Column()
+    @Column
     @Unique
     @NotNull
     public String name;
 
-    @Override
-    public long insert() {
-        return SQLiteManager.getInstance().insert(this);
-    }
 
-    @Override
-    public long update() {
-        return 0;
-    }
-
-    @Override
-    public long delete() {
-        return 0;
-    }
 }

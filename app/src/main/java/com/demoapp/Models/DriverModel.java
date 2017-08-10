@@ -1,5 +1,6 @@
 package com.demoapp.Models;
 
+import com.sqlitemanager.AbstractTableModel;
 import com.sqlitemanager.Annotations.Column;
 import com.sqlitemanager.Annotations.Default;
 import com.sqlitemanager.Annotations.ForeignKey;
@@ -16,7 +17,7 @@ import com.sqlitemanager.Utils;
  */
 
 @TableName("drivers")
-public class DriverModel implements Tableable {
+public class DriverModel  extends AbstractTableModel {
 
     @Column
     @PrimaryKey
@@ -35,22 +36,12 @@ public class DriverModel implements Tableable {
     @NotNull
     public String email;
 
-    @Column
+    @Column("carId")
     @ForeignKey(refTableName = "cars", refColumnName = "id")
-    public int carId;
+    public CarModel carModel;
 
-    @Override
-    public long insert() {
-        return SQLiteManager.getInstance().insert(this);
-    }
+    //Todo: We need to add a feature to Foreign Key. If the original data
+    //Todo: is updated, then the data referencing to it should be updated too.
+    //Todo: And also this functionality should be able to turned on and off.
 
-    @Override
-    public long update() {
-        return 0;
-    }
-
-    @Override
-    public long delete() {
-        return 0;
-    }
 }

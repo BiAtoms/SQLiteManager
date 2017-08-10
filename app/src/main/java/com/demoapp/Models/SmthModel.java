@@ -1,5 +1,6 @@
 package com.demoapp.Models;
 
+import com.sqlitemanager.AbstractTableModel;
 import com.sqlitemanager.Annotations.Column;
 import com.sqlitemanager.Annotations.Default;
 import com.sqlitemanager.Annotations.NotNull;
@@ -12,7 +13,7 @@ import com.sqlitemanager.Tableable;
  * Created by aslan on 8/10/2017.
  */
 // By default, its name will be "SmthModel" table
-public class SmthModel implements Tableable {
+public class SmthModel  extends AbstractTableModel {
 
     @Column
     @PrimaryKey
@@ -31,20 +32,4 @@ public class SmthModel implements Tableable {
     @Default("3") //Todo: Default for other datatypes does not work! Only for Strings
      int asda;
 
-
-    @Override
-    public long insert() {
-        return SQLiteManager.getInstance().insert(this);
-
-    }
-
-    @Override
-    public long update() {
-        return 0;
-    }
-
-    @Override
-    public long delete() {
-        return 0;
-    }
 }

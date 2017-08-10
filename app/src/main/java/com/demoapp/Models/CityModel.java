@@ -1,5 +1,6 @@
 package com.demoapp.Models;
 
+import com.sqlitemanager.AbstractTableModel;
 import com.sqlitemanager.Annotations.Column;
 import com.sqlitemanager.Annotations.NotNull;
 import com.sqlitemanager.Annotations.PrimaryKey;
@@ -14,7 +15,7 @@ import com.sqlitemanager.Utils;
  */
 
 @TableName("cities")
-public class CityModel implements Tableable {
+public class CityModel  extends AbstractTableModel {
 
     @Column
     @PrimaryKey
@@ -32,18 +33,4 @@ public class CityModel implements Tableable {
     @Column("additional_info")
     public String additionalInfo;
 
-    @Override
-    public long insert() {
-        return SQLiteManager.getInstance().insert(this);
-    }
-
-    @Override
-    public long update() {
-        return 0;
-    }
-
-    @Override
-    public long delete() {
-        return 0;
-    }
 }
