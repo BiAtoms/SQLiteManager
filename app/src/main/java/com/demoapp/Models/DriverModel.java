@@ -1,5 +1,6 @@
 package com.demoapp.Models;
 
+import com.sqlitemanager.Annotations.Column;
 import com.sqlitemanager.Annotations.Default;
 import com.sqlitemanager.Annotations.ForeignKey;
 import com.sqlitemanager.Annotations.NotNull;
@@ -17,19 +18,24 @@ import com.sqlitemanager.Utils;
 @TableName("drivers")
 public class DriverModel implements Tableable {
 
+    @Column
     @PrimaryKey
     public int id;
 
+    @Column
     @Default("12-03-2017")
     public String birtdate;
 
+    @Column
     @Unique
     public String fullname;
 
+    @Column
     @Unique
     @NotNull
     public String email;
 
+    @Column
     @ForeignKey(refTableName = "cars", refColumnName = "id")
     public int carId;
 

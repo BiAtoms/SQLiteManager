@@ -1,6 +1,6 @@
 package com.demoapp.Models;
 
-import com.sqlitemanager.Annotations.NotColumn;
+import com.sqlitemanager.Annotations.Column;
 import com.sqlitemanager.Annotations.NotNull;
 import com.sqlitemanager.Annotations.PrimaryKey;
 import com.sqlitemanager.Annotations.TableName;
@@ -16,18 +16,20 @@ import com.sqlitemanager.Utils;
 @TableName("cities")
 public class CityModel implements Tableable {
 
-
+    @Column
     @PrimaryKey
     public int id;
 
+    @Column
     @NotNull
     @Unique
     public String name;
 
+    @Column
     @NotNull
     public int num_of_roads;
 
-    @NotColumn
+    @Column("additional_info")
     public String additionalInfo;
 
     @Override

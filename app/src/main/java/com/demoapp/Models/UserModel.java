@@ -1,13 +1,11 @@
 package com.demoapp.Models;
 
-import com.sqlitemanager.Annotations.ColumnName;
+import com.sqlitemanager.Annotations.Column;
 import com.sqlitemanager.Annotations.Default;
-import com.sqlitemanager.Annotations.NotColumn;
 import com.sqlitemanager.Annotations.PrimaryKey;
 import com.sqlitemanager.Annotations.TableName;
 import com.sqlitemanager.SQLiteManager;
 import com.sqlitemanager.Tableable;
-import com.sqlitemanager.Utils;
 
 /**
  * Created by aslan on 7/19/2017.
@@ -16,19 +14,22 @@ import com.sqlitemanager.Utils;
 @TableName("users")
 public class UserModel implements Tableable {
 
-    @NotColumn
     public final static String thisIsAName = "All_Users";
 
+    @Column
     @PrimaryKey
     public int id;
 
+    @Column
     @Default("Amiraslan")
     public String fullname;
 
-    @ColumnName("avatar_url")
+    @Column("avatar_url")
     @Default("http://www.amiraslan.com/images/my_picture.png")
     public String profilePicture;
 
+    @Column
+    @Default("31")
     public int age;
 
     @Override
