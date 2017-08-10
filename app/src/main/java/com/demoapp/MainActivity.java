@@ -26,9 +26,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-        // Initialize singleton SqLiteManager;
-        //Todo: Take into accoint upgrade stuff in version number and Handle it in Annotations, OK?
+        // Initialize singleton SqLiteManager once:
+        //Todo: Take into account upgrade stuff in version number and Handle it in Annotations, OK?
         new SQLiteManager.Builder(this)
                 .setDBName("my_new_db")
                 .setTableList(
@@ -39,27 +38,66 @@ public class MainActivity extends AppCompatActivity {
                         SmthModel.class)
                 .buildDatabase();
 
-
         // Creating model
         UserModel userModel = new UserModel();
-        userModel.id = 5;
         userModel.profilePicture = "some image uri";
         userModel.fullname = "First Last name";
 
         //Inserting it to the table
         long info1 = userModel.insert();
-
+        userModel.insert();
+        userModel.insert();
+        userModel.insert();
 
         //Creating model
         DriverModel driver = new DriverModel();
         driver.birtdate = "12-01-12";
         driver.fullname = "Fullname here";
         driver.email = "Email here";
-        driver.id = 2;
 
         //Inserting to the table
         long info = driver.insert();
 
+        //Creating model
+        driver.birtdate = "12-d01-12";
+        driver.fullname = "Fuldlname here";
+        driver.email = "Email hdere";
+
+        //Inserting to the table
+        driver.insert();
+
+        //Creating model
+        driver.birtdate = "12-fd01-12";
+        driver.fullname = "Fuldlnfame here";
+        driver.email = "Email hddere";
+
+        //Inserting to the table
+        driver.insert();
+
+        //Creating model
+        driver.birtdate = "12-d01a-12";
+        driver.fullname = "Fuldlnasme here";
+        driver.email = "Email hddere";
+
+        //Inserting to the table
+        driver.insert();
+
+        //Creating model
+        CarModel carModel = new CarModel();
+        carModel.releaseDate = "adasd";
+        carModel.model = "asdasd";
+        carModel.name = "addasd";
+
+        //Inserting to the table
+        carModel.insert();
+
+        //Creating model
+        carModel.releaseDate = "addasd";
+        carModel.model = "asdasdd";
+        carModel.name = "addasdd";
+
+        //Inserting to the table
+        carModel.insert();
 
         //Get all data with type
         ArrayList<DriverModel> drivers = SQLiteManager.all(DriverModel.class);
@@ -67,10 +105,28 @@ public class MainActivity extends AppCompatActivity {
         //Get all data with table name
         ArrayList<CityModel> cities = SQLiteManager.all("cities");
 
-    //    SQLiteManager.deleteDatabase();
 
+        //This will delete everything
+        //(Database, Tables and all data inside them)
+        //SQLiteManager.deleteDatabase();
+
+        //This will also delete everything, but rebuild them again
+        //(Only tables and Constraints, Not Data). All data will be gone
+        //SQLiteManager.refreshDatabase();
+
+
+        ArrayList<UserModel> userModelsWithName = new SQLiteManager
+                .Select("drivers")
+                .where("id>? and name=?", "12", "name")
+                .sort(SortOrder.ASC)
+                .limit(5)
+                .innerJoin("carId")
+                .columns("cars.id", "drivers.fullname")
+                .get();
+
+//        Random, and first
 //        ArrayList<UserModel> userModels = new SQLiteManager
-//                .Select("driver")
+//                .Select(UserModel.class)
 //                .where("id>? and name=?", "12", "name")
 //                .sort(SortOrder.ASC)
 //                .limit(5)
@@ -78,27 +134,11 @@ public class MainActivity extends AppCompatActivity {
 //                .columns("id", "email")
 //                .get();
 //
-//
-//        ArrayList<UserModel> usersArrayList = SQLiteManager.all("users");
-//
-//        ArrayList<DriverModel> arrayList = new SQLiteManager
-//                .Select("asda")
-//                .get();
-//
-//
-//
-//
-//
-//        // Get (Select) with condition
-//
-//        this.deleteDatabase(SQLiteManager.getInstance().getDatabaseName());
 
-        // Get (Select) with SortOrder
-
-        // Get (Select) with Limit (certain amount)
+        int a = 123 + 32;
+        Log.d(TAG, "${}" + a);
 
         // Get (Select) random data
-
 
         // Update in table
 

@@ -24,10 +24,12 @@ import com.sqlitemanager.DbPackModels.NotNullModel;
 import com.sqlitemanager.DbPackModels.PrimaryKeyModel;
 import com.sqlitemanager.DbPackModels.TableModel;
 import com.sqlitemanager.DbPackModels.UniqueModel;
+import com.sqlitemanager.Exceptions.SqLiteManagerException;
 import com.sqlitemanager.Exceptions.UnknownDatatypeException;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -56,11 +58,14 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
     private Context context;
 
+    private Builder builder;
+
     private boolean willBeUpdated;
 
     private SQLiteManager(Builder builder) {
         super(builder.context, builder.databaseName, null, builder.databaseVersion);
         Log.i("Database operations", "Database created or opened...");
+        this.builder = builder;
         tableTypesList = builder.classes;
         context = builder.context;
 
@@ -132,10 +137,20 @@ public class SQLiteManager extends SQLiteOpenHelper {
         sqLiteManager.context.deleteDatabase(sqLiteManager.getDatabaseName());
     }
 
+    public static void refreshDatabase() {
+        deleteDatabase();
+        sqLiteManager = new SQLiteManager(sqLiteManager.builder);
+    }
+
     private void findAllAnnotatedFields() {
-        //TODO: Don't hard code anything! ("value", "this is empty")
-        String columnNameAnnotation = "value";
-        String columnDefaultValue = "this is empty";
+        String columnDefaultValue;
+        try {
+            Class<?> clazz = Column.class;
+            Method defaultValueMethod = clazz.getDeclaredMethod("value");
+            columnDefaultValue = (String) defaultValueMethod.getDefaultValue();
+        } catch (Exception e) {
+            throw new SqLiteManagerException("No value method inside Column constraint");
+        }
 
         databaseTables.clear();
 
@@ -152,7 +167,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 }
             });
 
-            TableModel table = null;
+            TableModel table;
 
             Annotation tableNameAnnotation = tableClass.getAnnotation(TableName.class);
             if (tableNameAnnotation != null) {
@@ -180,8 +195,8 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 if (!((Column) columnName).value().equals(columnDefaultValue)) {
                     columnAnnotationModel.columnName = ((Column) columnName).value();
                 }
-
-                currentColumnModel = new ColumnModel(columnAnnotationModel.columnName, column.getType().getSimpleName());
+                String simpleNameOfDataType = (foreignKey != null) ? SQLiteTypes.INT.getJavaType() : column.getType().getSimpleName();
+                currentColumnModel = new ColumnModel(columnAnnotationModel.columnName, simpleNameOfDataType);
                 currentColumnModel.hasInlineConstraint = false;
 
                 if (primaryKey != null) {
@@ -213,7 +228,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                     DefaultModel defaultModel = new DefaultModel();
                     defaultModel.sourceColumnName = columnAnnotationModel.columnName;
                     defaultModel.defaultValue = ((Default) _default).value();
-                    defaultModel.dataType = column.getType().getSimpleName();
+                    defaultModel.dataType = simpleNameOfDataType;
                     currentColumnModel.hasInlineConstraint = true;
                     defaultModel.isInline = true;
                     currentColumnModel.constraintModels.add(defaultModel);
@@ -230,14 +245,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
             }
             databaseTables.add(table);
         }
-// showAllTablesAndColumns();
-//This part had been written to slide the tables down which have more constraints.
-//        Collections.sort(databaseTables, new Comparator<TableModel>() {
-//            @Override
-//            public int compare(TableModel t1, TableModel t2) {
-//                return String.valueOf(t1.getConstraintModels().size()).compareTo(String.valueOf(t2.getConstraintModels().size()));  //.getName().compareToIgnoreCase(s2.getName());
-//            }
-//        });
         prepareCreateTablesQueryStr();
     }
 
@@ -256,56 +263,54 @@ public class SQLiteManager extends SQLiteOpenHelper {
         });
 
         for (Field field : allFields) {
+
             if (!field.isAnnotationPresent(Column.class)) continue;
 
+            String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class))
+                    ? SQLiteTypes.INT.getJavaType() : field.getType().getSimpleName();
+
             try {
-                switch (field.getType().getSimpleName()) {
+
+                boolean isDefaultNeeded = field.getAnnotation(Default.class) != null && field.get(tableModel) == null;
+                boolean isPrimaryNeeded = field.getAnnotation(PrimaryKey.class) != null && ((int) field.get(tableModel)) == 0;
+
+                switch (simpleNameOfDataType) {
                     case "int":
-                        if (field.getAnnotation(PrimaryKey.class) != null && ((int) field.get(tableModel)) == 0) {
-                            break;
-                        }
-                        if (field.getAnnotation(Default.class) != null && field.get(tableModel) == null)
-                            break;
+                        if (isPrimaryNeeded) break;
+                        if (isDefaultNeeded) break;
 
                         contentValues.put(Utils.getMemberColumnName(field), (int) field.get(tableModel));
                         break;
                     case "String":
-                        if (field.getAnnotation(Default.class) != null && field.get(tableModel) == null)
-                            break;
+                        if (isDefaultNeeded) break;
                         contentValues.put(Utils.getMemberColumnName(field), (String) field.get(tableModel));
                         break;
                     case "double":
-                        if (field.getAnnotation(Default.class) != null && field.get(tableModel) == null)
-                            break;
+                        if (isDefaultNeeded) break;
                         contentValues.put(Utils.getMemberColumnName(field), (double) field.get(tableModel));
                         break;
                     case "float":
-                        if (field.getAnnotation(Default.class) != null && field.get(tableModel) == null)
-                            break;
+                        if (isDefaultNeeded) break;
                         contentValues.put(Utils.getMemberColumnName(field), (float) field.get(tableModel));
                         break;
                     case "short":
-                        if (field.getAnnotation(Default.class) != null && field.get(tableModel) == null)
-                            break;
+                        if (isDefaultNeeded) break;
                         contentValues.put(Utils.getMemberColumnName(field), (short) field.get(tableModel));
                         break;
                     case "long":
-                        if (field.getAnnotation(Default.class) != null && field.get(tableModel) == null)
-                            break;
+                        if (isDefaultNeeded) break;
                         contentValues.put(Utils.getMemberColumnName(field), (long) field.get(tableModel));
                         break;
                     case "byte":
-                        if (field.getAnnotation(Default.class) != null && field.get(tableModel) == null)
-                            break;
+                        if (isDefaultNeeded) break;
                         contentValues.put(Utils.getMemberColumnName(field), (byte) field.get(tableModel));
                         break;
                     case "boolean":
-                        if (field.getAnnotation(Default.class) != null && field.get(tableModel) == null)
-                            break;
+                        if (isDefaultNeeded) break;
                         contentValues.put(Utils.getMemberColumnName(field), (boolean) field.get(tableModel));
                         break;
                     default:
-                        throw new UnknownDatatypeException(TAG + ": " + field.getType().getSimpleName() + " is not supported. Unknown type from Cursor!");
+                        throw new UnknownDatatypeException(TAG + ": " + field.getType().getSimpleName() + " and " + simpleNameOfDataType + " is not supported. Unknown type from Cursor!");
                 }
             } catch (Exception e) {
                 Log.e(TAG, e.getMessage());
@@ -326,8 +331,20 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
     //TODO: Complete this
     private String getStringForeignKey(String columnWithForeignKey, String mainTableName) {
-        //return mainTableName + " INNER JOIN " + referenceTableName + " ON " + referenceTableName + "." + referenceColumn + "=" + mainTableName + "." + columnWithForeignKey;
-        return "";
+        String refColName = "";
+        String refTableName = "";
+        for (TableModel table : databaseTables) {
+            for (ConstraintModel constraintModel : table.getConstraintModels()) {
+                if (constraintModel.sourceColumnName.equals(columnWithForeignKey)) {
+                    if (constraintModel instanceof ForeignKeyModel) {
+                        refColName = ((ForeignKeyModel) constraintModel).refColumnName;
+                        refTableName = ((ForeignKeyModel) constraintModel).refTableName;
+                    }
+                }
+            }
+        }
+
+        return " INNER JOIN " + refTableName + " ON " + mainTableName + "." + columnWithForeignKey + "=" + refTableName + "." + refColName;
     }
 
     @SuppressWarnings("unchecked")
@@ -359,13 +376,14 @@ public class SQLiteManager extends SQLiteOpenHelper {
          "notes._id");
          */
 
-        String foreignKey = getStringForeignKey(columnWithForeignKey, name);
+        String foreignKey = (columnWithForeignKey != null && !columnWithForeignKey.isEmpty()) ? getStringForeignKey(columnWithForeignKey, name) : "";
+        String[] projectionn = getColumnsForSelect(sqLiteDatabase, name, columns);
 
         cursor = sqLiteDatabase.query(
                 name + foreignKey,
-                getColumnsForSelect(sqLiteDatabase, name, columns),
-                condition,
-                args,
+                projectionn,
+                null,
+                null,
                 null,
                 null,
                 null
@@ -387,9 +405,10 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
                 for (Field field : fields) {
                     if (!field.isAnnotationPresent(Column.class)) continue;
+                    String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class)) ? SQLiteTypes.INT.getJavaType() : field.getType().getSimpleName();
 
                     try {
-                        switch (field.getType().getSimpleName()) {
+                        switch (simpleNameOfDataType) {
                             case "int":
                                 field.set(tableModel, cursor.getInt(index++));
                                 break;
@@ -415,7 +434,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                                 field.set(tableModel, cursor.getInt(index++));
                                 break;
                             default:
-                                throw new UnknownDatatypeException(TAG + ": " + field.getType().getSimpleName() + " is not supported. Unknown type from Cursor!");
+                                throw new UnknownDatatypeException(TAG + ": " + field.getType().getSimpleName() + " and " + simpleNameOfDataType + " is not supported. Unknown type from Cursor!");
                         }
                     } catch (Exception e) {
                         Log.e(TAG, e.getMessage());
