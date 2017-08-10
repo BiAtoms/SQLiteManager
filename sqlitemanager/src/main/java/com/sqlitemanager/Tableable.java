@@ -12,6 +12,4 @@ public interface Tableable {
     public long update();
 
     public long delete();
-
-
 }

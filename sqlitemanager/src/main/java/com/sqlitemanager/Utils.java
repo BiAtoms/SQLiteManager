@@ -1,10 +1,10 @@
 package com.sqlitemanager;
 
-import com.sqlitemanager.Annotations.ColumnName;
+import com.sqlitemanager.Annotations.Column;
 import com.sqlitemanager.Annotations.TableName;
+import com.sqlitemanager.DbPackModels.ColumnAnnotationModel;
 import com.sqlitemanager.Exceptions.WrongTableNameException;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 
@@ -16,8 +16,8 @@ public class Utils {
     protected final static String TAG = "Utils";
 
     static String getMemberColumnName(Field field) {
-        ColumnName anno = field.getAnnotation(ColumnName.class);
-        if (anno == null) return field.getName();
+        Column anno = field.getAnnotation(Column.class);
+        if (anno.value().equals(ColumnAnnotationModel.defaultValue)) return field.getName();
         return anno.value();
     }
 

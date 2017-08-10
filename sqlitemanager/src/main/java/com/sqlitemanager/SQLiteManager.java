@@ -8,16 +8,15 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
-import com.sqlitemanager.Annotations.ColumnName;
+import com.sqlitemanager.Annotations.Column;
 import com.sqlitemanager.Annotations.Default;
 import com.sqlitemanager.Annotations.ForeignKey;
-import com.sqlitemanager.Annotations.NotColumn;
 import com.sqlitemanager.Annotations.NotNull;
 import com.sqlitemanager.Annotations.PrimaryKey;
 import com.sqlitemanager.Annotations.TableName;
 import com.sqlitemanager.Annotations.Unique;
 import com.sqlitemanager.DbPackModels.ColumnModel;
-import com.sqlitemanager.DbPackModels.ColumnNameModel;
+import com.sqlitemanager.DbPackModels.ColumnAnnotationModel;
 import com.sqlitemanager.DbPackModels.ConstraintModel;
 import com.sqlitemanager.DbPackModels.DefaultModel;
 import com.sqlitemanager.DbPackModels.ForeignKeyModel;
@@ -64,6 +63,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
         Log.i("Database operations", "Database created or opened...");
         tableTypesList = builder.classes;
         context = builder.context;
+
         willBeUpdated = builder.willBeUpdated;
         findAllAnnotatedFields();
     }
@@ -128,9 +128,14 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
     }
 
+    public static void deleteDatabase() {
+        sqLiteManager.context.deleteDatabase(sqLiteManager.getDatabaseName());
+    }
+
     private void findAllAnnotatedFields() {
-        //TODO: Don't hard code anything! ("value")
+        //TODO: Don't hard code anything! ("value", "this is empty")
         String columnNameAnnotation = "value";
+        String columnDefaultValue = "this is empty";
 
         databaseTables.clear();
 
@@ -158,32 +163,30 @@ public class SQLiteManager extends SQLiteOpenHelper {
             }
 
             for (Field column : fields) {
-                Annotation notColumn = column.getAnnotation(NotColumn.class);
+
+                if (!column.isAnnotationPresent(Column.class)) continue;
+
                 Annotation primaryKey = column.getAnnotation(PrimaryKey.class);
                 Annotation foreignKey = column.getAnnotation(ForeignKey.class);
                 Annotation unique = column.getAnnotation(Unique.class);
-                Annotation columnName = column.getAnnotation(ColumnName.class);
+                Annotation columnName = column.getAnnotation(Column.class);
                 Annotation notNull = column.getAnnotation(NotNull.class);
                 Annotation _default = column.getAnnotation(Default.class);
 
-                if (notColumn != null) {
-                    continue;
-                }
-
                 ColumnModel currentColumnModel;
-                ColumnNameModel columnNameModel = new ColumnNameModel();
-                columnNameModel.columnName = column.getName();
+                ColumnAnnotationModel columnAnnotationModel = new ColumnAnnotationModel();
+                columnAnnotationModel.columnName = column.getName();
 
-                if (columnName != null) {
-                    columnNameModel.columnName = ((ColumnName) columnName).value();
+                if (!((Column) columnName).value().equals(columnDefaultValue)) {
+                    columnAnnotationModel.columnName = ((Column) columnName).value();
                 }
 
-                currentColumnModel = new ColumnModel(columnNameModel.columnName, column.getType().getSimpleName());
+                currentColumnModel = new ColumnModel(columnAnnotationModel.columnName, column.getType().getSimpleName());
                 currentColumnModel.hasInlineConstraint = false;
 
                 if (primaryKey != null) {
                     PrimaryKeyModel primaryKeyModel = new PrimaryKeyModel();
-                    primaryKeyModel.sourceColumnName = columnNameModel.columnName;
+                    primaryKeyModel.sourceColumnName = columnAnnotationModel.columnName;
                     currentColumnModel.hasInlineConstraint = true;
                     primaryKeyModel.isInline = true;
                     currentColumnModel.constraintModels.add(primaryKeyModel);
@@ -191,7 +194,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
                 if (foreignKey != null) {
                     ForeignKeyModel foreignKeyModel = new ForeignKeyModel();
-                    foreignKeyModel.sourceColumnName = columnNameModel.columnName;
+                    foreignKeyModel.sourceColumnName = columnAnnotationModel.columnName;
                     foreignKeyModel.refTableName = ((ForeignKey) foreignKey).refTableName();
                     foreignKeyModel.refColumnName = ((ForeignKey) foreignKey).refColumnName();
                     foreignKeyModel.isInline = false;
@@ -200,7 +203,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
                 if (unique != null) {
                     UniqueModel uniqueModel = new UniqueModel();
-                    uniqueModel.sourceColumnName = columnNameModel.columnName;
+                    uniqueModel.sourceColumnName = columnAnnotationModel.columnName;
                     currentColumnModel.hasInlineConstraint = true;
                     uniqueModel.isInline = true;
                     currentColumnModel.constraintModels.add(uniqueModel);
@@ -208,7 +211,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
                 if (_default != null) {
                     DefaultModel defaultModel = new DefaultModel();
-                    defaultModel.sourceColumnName = columnNameModel.columnName;
+                    defaultModel.sourceColumnName = columnAnnotationModel.columnName;
                     defaultModel.defaultValue = ((Default) _default).value();
                     defaultModel.dataType = column.getType().getSimpleName();
                     currentColumnModel.hasInlineConstraint = true;
@@ -218,7 +221,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
                 if (notNull != null) {
                     NotNullModel notNullModel = new NotNullModel();
-                    notNullModel.sourceColumnName = columnNameModel.columnName;
+                    notNullModel.sourceColumnName = columnAnnotationModel.columnName;
                     currentColumnModel.hasInlineConstraint = true;
                     notNullModel.isInline = true;
                     currentColumnModel.constraintModels.add(notNullModel);
@@ -238,7 +241,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
         prepareCreateTablesQueryStr();
     }
 
-
     public <T extends Tableable> long insert(T tableModel) {
         String name = Utils.getTableName(tableModel.getClass());
 
@@ -254,9 +256,9 @@ public class SQLiteManager extends SQLiteOpenHelper {
         });
 
         for (Field field : allFields) {
-            try {
-                if (field.getAnnotation(NotColumn.class) != null) continue;
+            if (!field.isAnnotationPresent(Column.class)) continue;
 
+            try {
                 switch (field.getType().getSimpleName()) {
                     case "int":
                         if (field.getAnnotation(PrimaryKey.class) != null && ((int) field.get(tableModel)) == 0) {
@@ -316,13 +318,11 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
     }
 
-
     public <T extends Tableable> SqlResponse delete(T tableModel) {
         String tableName = Utils.getTableName(tableModel.getClass());
         sqLiteManager.getWritableDatabase().delete(tableName, "?=?", new String[]{"1", "jack"});
         return SqlResponse.Successful;
     }
-
 
     //TODO: Complete this
     private String getStringForeignKey(String columnWithForeignKey, String mainTableName) {
@@ -348,7 +348,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
 
         /**
-         *      //TODO: Add this to make Foreign key property enabled.
+         * //TODO: Add this to make Foreign key property enabled.
          *   Cursor cursor = db.query(
          NoteContract.Note.TABLE_NAME + " LEFT OUTER JOIN authors ON notes._id=authors.note_id",
          projection,
@@ -386,7 +386,8 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 int index = 0;
 
                 for (Field field : fields) {
-                    if (field.getAnnotation(NotColumn.class) != null) continue;
+                    if (!field.isAnnotationPresent(Column.class)) continue;
+
                     try {
                         switch (field.getType().getSimpleName()) {
                             case "int":
@@ -428,7 +429,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
         return tableModels;
     }
 
-
     public static SqlResponse deleteTable(String tableName) {
         if (Utils.tableExist(tableName))
             sqLiteManager.getWritableDatabase().execSQL("DROP TABLE IF EXISTS " + tableName);
@@ -441,7 +441,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
     public static <T extends Tableable> SqlResponse deleteTable(Class<T> tableClass) {
         return deleteTable(Utils.getTableName(tableClass));
     }
-
 
     public static SqlResponse clearTableData(String tableName) {
         long result;
@@ -459,12 +458,10 @@ public class SQLiteManager extends SQLiteOpenHelper {
         return clearTableData(Utils.getTableName(tableClass));
     }
 
-
     private String[] getColumnsForSelect(SQLiteDatabase sqLiteDatabase, String name, String[] columns) {
         if (columns != null && columns.length != 0) {
             return columns;
         }
-
         Cursor dbCursor;
 
         try {
@@ -480,12 +477,12 @@ public class SQLiteManager extends SQLiteOpenHelper {
         return projections;
     }
 
-
     @Override
     public void onCreate(SQLiteDatabase db) {
         for (String query : createdTableQueries) {
             db.execSQL(query);
         }
+
         Log.i(TAG, "Database created! All tables are ready!");
     }
 
@@ -501,7 +498,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
         onCreate(sqLiteDatabase);
         Log.i(TAG, "Database is successfully upgraded");
     }
-
 
     //TODO: Name this as QueryBuilder
     public static class Select {
