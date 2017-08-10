@@ -5,6 +5,7 @@ package com.sqlitemanager;
  */
 
 public enum SqlResponse {
+    ErrorOccured(-1),
     AlreadyExist(-20),
     TableNotExist(-30),
     Successful(-10),
@@ -13,7 +14,7 @@ public enum SqlResponse {
 
     private int code;
 
-    private SqlResponse(int code) {
+    SqlResponse(int code) {
         this.code = code;
     }
 
