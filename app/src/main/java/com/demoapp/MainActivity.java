@@ -8,6 +8,7 @@ import android.util.Log;
 import com.demoapp.Models.CarModel;
 import com.demoapp.Models.CityModel;
 import com.demoapp.Models.DriverModel;
+import com.demoapp.Models.SmthModel;
 import com.demoapp.Models.UserModel;
 import com.sqlitemanager.SQLiteManager;
 import com.sqlitemanager.SortOrder;
@@ -25,104 +26,72 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        sqliteManager = new SQliteManager.Builder(getApplicationContext())
-//                .setTableList(new ArrayList<Class>() {{
-//                    add(WeightModel.class);
-//                    add(ActivenessModel.class);
-//                    add(FoodModel.class);
-//                    add(MealTimeModel.class);
-//                    add(ConsumedFoodModel.class);
-//                    add(WaterModel.class);
-//                    add(StepModel.class);
-//                    add(UserImage.class);
-//                }})
-//                .buildDatabase();
-
-//Example:  foods  FoodModel  foodModel
 
         // Initialize singleton SqLiteManager;
+        //Todo: Take into accoint upgrade stuff in version number and Handle it in Annotations, OK?
         new SQLiteManager.Builder(this)
                 .setDBName("my_new_db")
                 .setTableList(
                         CarModel.class,
                         DriverModel.class,
                         CityModel.class,
-                        UserModel.class)
+                        UserModel.class,
+                        SmthModel.class)
                 .buildDatabase();
 
-        Long[] logs = new Long[3];
 
-        // Add tables to be created
+        // Creating model
         UserModel userModel = new UserModel();
-        userModel.age = 14;
-        userModel.profilePicture = "31231 as a asd aaaaa";
-        userModel.fullname = "Amras ll alsk";
+        userModel.id = 5;
+        userModel.profilePicture = "some image uri";
+        userModel.fullname = "First Last name";
 
-        userModel.insert();
+        //Inserting it to the table
+        long info1 = userModel.insert();
 
-        Log.i(TAG, logs[0] + "");
 
+        //Creating model
         DriverModel driver = new DriverModel();
-        driver.birtdate = "132391";
-        driver.fullname = "afkjkhfaa";
-        driver.email = "asddafkjfaaff";
+        driver.birtdate = "12-01-12";
+        driver.fullname = "Fullname here";
+        driver.email = "Email here";
+        driver.id = 2;
 
-        logs[1] = driver.insert();
-        Log.i(TAG, logs[0] + "");
+        //Inserting to the table
+        long info = driver.insert();
 
 
-        // Set data to a table
+        //Get all data with type
+        ArrayList<DriverModel> drivers = SQLiteManager.all(DriverModel.class);
 
-//
-//        ArrayList<DriverModel> asdas = SQLiteManager.all(DriverModel.class);
-//        ArrayList<CityModel> cityModels = SQLiteManager.all("cities");
-//        ArrayList<UserModel> users  = SQLiteManager.all(UserModel.class);
-//
-//
-//    ArrayList<DriverModel> asdasda= SQLiteManager.all(DriverModel.class);
-//        SQLiteManager.Selector asdd  = new SQLiteManager.Selector();
-//
-//
-//        ArrayList<DriverModel> driverModels = SQLiteManager.all(DriverModel.class).get();
-//
-//        ArrayList<UserModel> userModels = new
-//                SQLiteManager.Select(DriverModel.class)
-//                        .select("drivers")
-//                        .where("id>? and name=?", "12", "name")
-//                        .whereIn()
-//                        .sort(SortOrder.Desc)
-//                        .limit()
-//                        .joinWith()
-//                        .get();
+        //Get all data with table name
+        ArrayList<CityModel> cities = SQLiteManager.all("cities");
+
+    //    SQLiteManager.deleteDatabase();
+
+//        ArrayList<UserModel> userModels = new SQLiteManager
+//                .Select("driver")
+//                .where("id>? and name=?", "12", "name")
+//                .sort(SortOrder.ASC)
+//                .limit(5)
+//                .innerJoin("carId")
+//                .columns("id", "email")
+//                .get();
 //
 //
-//                        .random()
+//        ArrayList<UserModel> usersArrayList = SQLiteManager.all("users");
 //
-
-        ArrayList<UserModel> userModels = new SQLiteManager
-                .Select("driver")
-                .where("id>? and name=?", "12", "name")
-                .sort(SortOrder.ASC)
-                .limit(5)
-                .innerJoin("carId")
-                .columns("id", "email")
-                .get();
-
-
-        ArrayList<CityModel> userMojdels = SQLiteManager.all("drivers");
-
-
-        ArrayList<DriverModel> arrayList = new SQLiteManager
-                .Select("asda")
-                .get();
-
-
-        Log.i(TAG, logs[0] + "");
-
-
-        // Get (Select) with condition
-
-        this.deleteDatabase(SQLiteManager.getInstance().getDatabaseName());
+//        ArrayList<DriverModel> arrayList = new SQLiteManager
+//                .Select("asda")
+//                .get();
+//
+//
+//
+//
+//
+//        // Get (Select) with condition
+//
+//        this.deleteDatabase(SQLiteManager.getInstance().getDatabaseName());
 
         // Get (Select) with SortOrder
 
