@@ -1,8 +1,10 @@
 package com.sqlitemanager;
 
 import com.sqlitemanager.Annotations.Column;
+import com.sqlitemanager.Annotations.PrimaryKey;
 import com.sqlitemanager.Annotations.TableName;
 import com.sqlitemanager.DbPackModels.ColumnAnnotationModel;
+import com.sqlitemanager.Exceptions.SqLiteManagerException;
 import com.sqlitemanager.Exceptions.WrongTableNameException;
 
 import java.lang.reflect.Field;
@@ -49,6 +51,18 @@ public class Utils {
     public static String getTableName(String className, ArrayList<Class> typeList) {
         //className += "  ";
         return className;
+    }
+
+    public static Field getPrimaryKeyField(Class clazz) {
+        Field[] fields = clazz.getFields();
+
+        for (Field item : fields) {
+            if (item.isAnnotationPresent(PrimaryKey.class)) {
+                return item;
+            }
+        }
+
+        return null;
     }
 
 }

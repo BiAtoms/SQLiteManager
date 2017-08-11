@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
         UserModel userModel = new UserModel();
         userModel.profilePicture = "some image uri";
         userModel.fullname = "First Last name";
+        userModel.age = 123;
 
         //Inserting it to the table
         long info1 = userModel.insert();
@@ -52,8 +53,13 @@ public class MainActivity extends AppCompatActivity {
         //Creating model
         DriverModel driver = new DriverModel();
         driver.birtdate = "12-01-12";
-        driver.fullname = "Fullname here";
-        driver.email = "Email here";
+        driver.fullname = "Fullnaasddajjjsdme here";
+        driver.email = "Emailsadasdda hjjjere";
+
+        CarModel carModelq = new CarModel();
+        carModelq.id = 1;
+
+        driver.carModel = carModelq;
 
         //Inserting to the table
         long info = driver.insert();
@@ -115,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
         //SQLiteManager.refreshDatabase();
 
 
-        ArrayList<UserModel> userModelsWithName = new SQLiteManager
+        ArrayList<DriverModel> userModelsWithName = new SQLiteManager
                 .Select("drivers")
                 .where("id>? and name=?", "12", "name")
                 .sort(SortOrder.ASC)
@@ -141,6 +147,8 @@ public class MainActivity extends AppCompatActivity {
         // Get (Select) random data
 
         // Update in table
+
+        //Write find method which finds item with id only
 
         // Delete data from DB with condition
 

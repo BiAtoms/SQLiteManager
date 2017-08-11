@@ -5,30 +5,31 @@ package com.sqlitemanager;
  */
 
 public enum SQLiteTypes {
-    INTEGER("int", "INTEGER"),
-    INTEGER_NULLABLE("Integer", "INTEGER"),
-    STRING("String", "TEXT"),
-    DOUBLE("double", "DECIMAL(10, 5)"),
-    DOUBLE_NULLABLE("Double", "DECIMAL(10, 5)"),
-    FLOAT("float", "DECIMAL(10, 5)"),
-    FLOAT_NULLABLE("Float", "DECIMAL(10, 5)"),
-    SHORT("short", "INTEGER"),
-    SHORT_NULLABLE("Short", "INTEGER"),
-    LONG("long", "INTEGER"),
-    LONG_NULLABLE("Long", "INTEGER"),
-    CHAR("char", "TEXT"),
-    CHAR_NULLABLE("Char", "TEXT"),
-    BYTE("byte", "BLOB"),
-    BYTE_NULLABLE("Byte", "BLOB"),
-    BOOLEAN("boolean", "INTEGER"),
-    BOOLEAN_NULLABLE("Boolean", "INTEGER");
+    INTEGER("int", "INTEGER", int.class),
+    INTEGER_NULLABLE("Integer", "INTEGER", Integer.class),
+    STRING("String", "TEXT", String.class),
+    DOUBLE("double", "DECIMAL(10, 5)", double.class),
+    DOUBLE_NULLABLE("Double", "DECIMAL(10, 5)", Double.class),
+    FLOAT("float", "DECIMAL(10, 5)", float.class),
+    FLOAT_NULLABLE("Float", "DECIMAL(10, 5)", Float.class),
+    SHORT("short", "INTEGER", short.class),
+    SHORT_NULLABLE("Short", "INTEGER", Short.class),
+    LONG("long", "INTEGER", long.class),
+    LONG_NULLABLE("Long", "INTEGER", Long.class),
+    CHAR("char", "TEXT", char.class),
+    BYTE("byte", "BLOB", byte.class),
+    BYTE_NULLABLE("Byte", "BLOB", Byte.class),
+    BOOLEAN("boolean", "INTEGER", boolean.class),
+    BOOLEAN_NULLABLE("Boolean", "INTEGER", Boolean.class);
 
     private String javaType;
     private String SQLiteType;
+    private Class typeClass;
 
-    private SQLiteTypes(String type, String SQLiteType) {
+    private SQLiteTypes(String type, String SQLiteType, Class typeClass) {
         this.javaType = type;
         this.SQLiteType = SQLiteType;
+        this.typeClass = typeClass;
     }
 
     public String getJavaType() {
@@ -38,7 +39,10 @@ public enum SQLiteTypes {
 
     public String getSQLiteType() {
         return this.SQLiteType;
+    }
 
+    public Class getTypeClass() {
+        return this.typeClass;
     }
 
     public static String findType(String javaType) {

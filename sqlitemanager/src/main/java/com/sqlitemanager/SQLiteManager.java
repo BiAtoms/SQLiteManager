@@ -195,7 +195,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 if (!((Column) columnName).value().equals(columnDefaultValue)) {
                     columnAnnotationModel.columnName = ((Column) columnName).value();
                 }
-                String simpleNameOfDataType = (foreignKey != null) ? SQLiteTypes.INTEGER.getJavaType() : column.getType().getSimpleName();
+                String simpleNameOfDataType = (foreignKey != null) ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : column.getType().getSimpleName();
                 currentColumnModel = new ColumnModel(columnAnnotationModel.columnName, simpleNameOfDataType);
                 currentColumnModel.hasInlineConstraint = false;
 
@@ -209,20 +209,13 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
                 if (foreignKey != null) {
                     ForeignKeyModel foreignKeyModel = new ForeignKeyModel();
-                    Field[] newFields = column.getType().getFields();
-                    boolean prmKeyNotFound = true;
-
                     foreignKeyModel.sourceColumnName = columnAnnotationModel.columnName;
 
-                    for (Field item : newFields) {
-                        if (item.isAnnotationPresent(PrimaryKey.class)) {
-                            foreignKeyModel.refColumnName = item.getName();
-                            prmKeyNotFound = false;
-                        }
+                    Field primaryKeyField = Utils.getPrimaryKeyField(column.getType());
+                    if (primaryKeyField == null) {
+                        throw new SqLiteManagerException("Referenced table " + column.getType().getSimpleName() + " does not have primary key");
                     }
-
-                    if (prmKeyNotFound)
-                        throw new SqLiteManagerException("Referenced table " + column.getType().getSimpleName() + "does not have primary key");
+                    foreignKeyModel.refColumnName = primaryKeyField.getName();
 
                     if (column.getType().isAnnotationPresent(TableName.class)) {
                         foreignKeyModel.refTableName = column.getType().getAnnotation(TableName.class).value();
@@ -284,12 +277,16 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
             if (!field.isAnnotationPresent(Column.class)) continue;
 
-            String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class))
-                    ? SQLiteTypes.INTEGER.getJavaType() : field.getType().getSimpleName();
+            boolean isForeignKey = field.isAnnotationPresent(ForeignKey.class);
+
+            String simpleNameOfDataType = (isForeignKey)
+                    ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : field.getType().getSimpleName();
 
             try {
                 //Todo: Look up for default functionality in integers. It does not work
                 boolean isDefaultNeeded = field.getAnnotation(Default.class) != null && field.get(tableModel) == null;
+
+                //Todo: Make a primary key type Integer and see if the code below works properly. (I expect cannot cast exception)
                 boolean isPrimaryNeeded = field.getAnnotation(PrimaryKey.class) != null && ((int) field.get(tableModel)) == 0;
 
                 switch (simpleNameOfDataType) {
@@ -301,7 +298,15 @@ public class SQLiteManager extends SQLiteOpenHelper {
                     case "Integer":
                         if (isPrimaryNeeded) break;
                         if (isDefaultNeeded) break;
-                        contentValues.put(Utils.getMemberColumnName(field), (int) field.get(tableModel));
+                        if (isForeignKey) {
+                            Field prmrField = Utils.getPrimaryKeyField(field.getType());
+                            if (prmrField == null)
+                                throw new SqLiteManagerException("Referenced table " + field.getType().getSimpleName() + " does not have primary key");
+
+                            contentValues.put(Utils.getMemberColumnName(field), (Integer) prmrField.get(field.get(tableModel)));
+                            break;
+                        }
+                        contentValues.put(Utils.getMemberColumnName(field), (Integer) field.get(tableModel));
                         break;
                     case "String":
                         if (isDefaultNeeded) break;
@@ -313,7 +318,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                         break;
                     case "Double":
                         if (isDefaultNeeded) break;
-                        contentValues.put(Utils.getMemberColumnName(field), (double) field.get(tableModel));
+                        contentValues.put(Utils.getMemberColumnName(field), (Double) field.get(tableModel));
                         break;
                     case "float":
                         if (isDefaultNeeded) break;
@@ -321,7 +326,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                         break;
                     case "Float":
                         if (isDefaultNeeded) break;
-                        contentValues.put(Utils.getMemberColumnName(field), (float) field.get(tableModel));
+                        contentValues.put(Utils.getMemberColumnName(field), (Float) field.get(tableModel));
                         break;
                     case "short":
                         if (isDefaultNeeded) break;
@@ -329,7 +334,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                         break;
                     case "Short":
                         if (isDefaultNeeded) break;
-                        contentValues.put(Utils.getMemberColumnName(field), (short) field.get(tableModel));
+                        contentValues.put(Utils.getMemberColumnName(field), (Short) field.get(tableModel));
                         break;
                     case "long":
                         if (isDefaultNeeded) break;
@@ -337,7 +342,11 @@ public class SQLiteManager extends SQLiteOpenHelper {
                         break;
                     case "Long":
                         if (isDefaultNeeded) break;
-                        contentValues.put(Utils.getMemberColumnName(field), (long) field.get(tableModel));
+                        contentValues.put(Utils.getMemberColumnName(field), (Long) field.get(tableModel));
+                        break;
+                    case "char":
+                        if (isDefaultNeeded) break;
+                        contentValues.put(Utils.getMemberColumnName(field), (String) field.get(tableModel));
                         break;
                     case "byte":
                         if (isDefaultNeeded) break;
@@ -345,7 +354,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                         break;
                     case "Byte":
                         if (isDefaultNeeded) break;
-                        contentValues.put(Utils.getMemberColumnName(field), (byte) field.get(tableModel));
+                        contentValues.put(Utils.getMemberColumnName(field), (Byte) field.get(tableModel));
                         break;
                     case "boolean":
                         if (isDefaultNeeded) break;
@@ -353,7 +362,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                         break;
                     case "Boolean":
                         if (isDefaultNeeded) break;
-                        contentValues.put(Utils.getMemberColumnName(field), (boolean) field.get(tableModel));
+                        contentValues.put(Utils.getMemberColumnName(field), (Boolean) field.get(tableModel));
                         break;
                     default:
                         throw new UnknownDatatypeException(TAG + ": " + field.getType().getSimpleName() + " and " + simpleNameOfDataType + " is not supported. Unknown type from Cursor!");
@@ -451,7 +460,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
                 for (Field field : fields) {
                     if (!field.isAnnotationPresent(Column.class)) continue;
-                    String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class)) ? SQLiteTypes.INTEGER.getJavaType() : field.getType().getSimpleName();
+                    String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class)) ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : field.getType().getSimpleName();
 
                     try {
                         switch (simpleNameOfDataType) {
@@ -477,6 +486,30 @@ public class SQLiteManager extends SQLiteOpenHelper {
                                 field.set(tableModel, cursor.getBlob(index++));
                                 break;
                             case "boolean":
+                                field.set(tableModel, cursor.getInt(index++));
+                                break;
+                            case "Integer":
+                                field.set(tableModel, cursor.getInt(index++));
+                                break;
+                            case "Double":
+                                field.set(tableModel, cursor.getDouble(index++));
+                                break;
+                            case "Float":
+                                field.set(tableModel, cursor.getFloat(index++));
+                                break;
+                            case "Short":
+                                field.set(tableModel, cursor.getShort(index++));
+                                break;
+                            case "Long":
+                                field.set(tableModel, cursor.getLong(index++));
+                                break;
+                            case "char":
+                                field.set(tableModel, cursor.getString(index++));
+                                break;
+                            case "Byte":
+                                field.set(tableModel, cursor.getBlob(index++));
+                                break;
+                            case "Boolean":
                                 field.set(tableModel, cursor.getInt(index++));
                                 break;
                             default:
