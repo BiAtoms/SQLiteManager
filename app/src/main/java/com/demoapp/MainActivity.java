@@ -38,72 +38,48 @@ public class MainActivity extends AppCompatActivity {
                         SmthModel.class)
                 .buildDatabase();
 
+
         // Creating model
         UserModel userModel = new UserModel();
         userModel.profilePicture = "some image uri";
         userModel.fullname = "First Last name";
-        userModel.age = 123;
+        userModel.age = 12;
 
         //Inserting it to the table
-        long info1 = userModel.insert();
-        userModel.insert();
-        userModel.insert();
+        long feedback_1 = userModel.insert();
+
+        //Inserting again. This will create new User in db.
         userModel.insert();
 
         //Creating model
         DriverModel driver = new DriverModel();
         driver.birtdate = "12-01-12";
-        driver.fullname = "Fullnaasddajjjsdme here";
-        driver.email = "Emailsadasdda hjjjere";
+        driver.fullname = "Some Fullname here";
+        driver.email = "Some Email here";
 
+        //Creating foreign key model
         CarModel carModelq = new CarModel();
         carModelq.id = 1;
 
+        //Assigning it to main model
         driver.carModel = carModelq;
 
         //Inserting to the table
-        long info = driver.insert();
+        long feedback_2 = driver.insert();
 
-        //Creating model
-        driver.birtdate = "12-d01-12";
-        driver.fullname = "Fuldlname here";
-        driver.email = "Email hdere";
-
-        //Inserting to the table
-        driver.insert();
-
-        //Creating model
-        driver.birtdate = "12-fd01-12";
-        driver.fullname = "Fuldlnfame here";
-        driver.email = "Email hddere";
-
-        //Inserting to the table
-        driver.insert();
-
-        //Creating model
-        driver.birtdate = "12-d01a-12";
-        driver.fullname = "Fuldlnasme here";
-        driver.email = "Email hddere";
-
-        //Inserting to the table
-        driver.insert();
+        //Inserting again. It won't be inserted, because fullname and email
+        //are unique columns. Once you entered them, you need to set different
+        //values for them. So, this will return -1
+        long feedback_3 = driver.insert();
 
         //Creating model
         CarModel carModel = new CarModel();
-        carModel.releaseDate = "adasd";
-        carModel.model = "asdasd";
-        carModel.name = "addasd";
+        carModel.releaseDate = "12-12-12";
+        carModel.model = "some model";
+        carModel.name = "some name";
 
         //Inserting to the table
-        carModel.insert();
-
-        //Creating model
-        carModel.releaseDate = "addasd";
-        carModel.model = "asdasdd";
-        carModel.name = "addasdd";
-
-        //Inserting to the table
-        carModel.insert();
+        long feedback_4 = carModel.insert();
 
         //Get all data with type
         ArrayList<DriverModel> drivers = SQLiteManager.all(DriverModel.class);
@@ -113,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         //This will delete everything
-        //(Database, Tables and all data inside them)
+        //(Database, Tables and all data in them)
         //SQLiteManager.deleteDatabase();
 
         //This will also delete everything, but rebuild them again
@@ -139,7 +115,6 @@ public class MainActivity extends AppCompatActivity {
 //                .innerJoin("carId")
 //                .columns("id", "email")
 //                .get();
-//
 
         int a = 123 + 32;
         Log.d(TAG, "${}" + a);

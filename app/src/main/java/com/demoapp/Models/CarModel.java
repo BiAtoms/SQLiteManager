@@ -14,11 +14,11 @@ import com.sqlitemanager.Tableable;
  */
 
 @TableName("cars")
-public class CarModel extends AbstractTableModel{
+public class CarModel extends AbstractTableModel {
 
     //Todo: Apply Encapsulation before first official release
 
-    @Column()
+    @Column
     @PrimaryKey
     public int id;
 
