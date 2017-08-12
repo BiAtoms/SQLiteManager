@@ -413,7 +413,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
         return sqLiteManager.selectAll(Utils.getTableName(modelClass), modelClass, null, null, null, null, null, null, null);
     }
 
-
     private <T extends Tableable> ArrayList<T> selectAll(String name, Class<T> modelClass, String[] args,
                                                          String condition, SortOrder sortOrder,
                                                          Integer limit, String columnWithForeignKey, String[] columns, String sortColumn) {
@@ -448,97 +447,47 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
         ArrayList<T> tableModels = new ArrayList<>();
 
+        Field[] fields = modelClass.getFields();
+
+        Arrays.sort(fields, new Comparator<Field>() {
+            @Override
+            public int compare(Field field, Field t1) {
+                return field.getName().compareTo(t1.getName());
+            }
+        });
+
         if (cursor.moveToFirst()) {
             do {
-                T tableModel;
+                final T tableModel;
                 try {
                     tableModel = modelClass.newInstance();
                 } catch (Exception e) {
                     throw new RuntimeException("Not successfully instantiated:" + " " + e.getMessage());
                 }
-
-                Field[] fields = tableModel.getClass().getFields();
-
-                Arrays.sort(fields, new Comparator<Field>() {
-                    @Override
-                    public int compare(Field field, Field t1) {
-                        return field.getName().compareTo(t1.getName());
-                    }
-                });
                 int index = 0;
 
-                String[] names = cursor.getColumnNames();
+                for (final Field field : fields) {
+                    String simpleNameOfDataType = field.getType().getSimpleName();
 
-                for (Field field : fields) {
-                    if (!field.isAnnotationPresent(Column.class)) continue;
-                    String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class))
-                            ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : field.getType().getSimpleName();
-
-                    try {
-                        switch (simpleNameOfDataType) {
-                            case "int":
-                                field.set(tableModel, cursor.getInt(index++));
-                                break;
-                            case "String":
-                                field.set(tableModel, cursor.getString(index++));
-                                break;
-                            case "double":
-                                field.set(tableModel, cursor.getDouble(index++));
-                                break;
-                            case "float":
-                                field.set(tableModel, cursor.getFloat(index++));
-                                break;
-                            case "short":
-                                field.set(tableModel, cursor.getShort(index++));
-                                break;
-                            case "long":
-                                field.set(tableModel, cursor.getLong(index++));
-                                break;
-                            case "byte":
-                                field.set(tableModel, cursor.getBlob(index++));
-                                break;
-                            case "boolean":
-                                field.set(tableModel, cursor.getInt(index++));
-                                break;
-                            case "Integer":
-                                field.set(tableModel, cursor.getInt(index++));
-                                break;
-                            case "Double":
-                                field.set(tableModel, cursor.getDouble(index++));
-                                break;
-                            case "Float":
-                                field.set(tableModel, cursor.getFloat(index++));
-                                break;
-                            case "Short":
-                                field.set(tableModel, cursor.getShort(index++));
-                                break;
-                            case "Long":
-                                field.set(tableModel, cursor.getLong(index++));
-                                break;
-                            case "char":
-                                field.set(tableModel, cursor.getString(index++));
-                                break;
-                            case "Byte":
-                                field.set(tableModel, cursor.getBlob(index++));
-                                break;
-                            case "Boolean":
-                                field.set(tableModel, cursor.getInt(index++));
-                                break;
-                            default:
-                                throw new UnknownDatatypeException(TAG + ": " + field.getType().getSimpleName() + " and " + simpleNameOfDataType + " is not supported. Unknown type from Cursor!");
+                    SqlResponse result = Utils.readingSwitchAction(simpleNameOfDataType, field, tableModel, index, cursor, new AbstractDefaultCase() {
+                        @Override
+                        public void onDefault(Field field, int indexx, Cursor cursorr) {
+                            try {
+                                field.set(tableModel, find((Tableable) field.getType().newInstance(), cursorr.getInt(indexx)));
+                            } catch (Exception e) {
+                                throw new SqLiteManagerException(e.getMessage());
+                            }
                         }
-                    } catch (Exception e) {
-                        Log.e(TAG, e.getMessage());
-                    }
+                    });
+                    if (result == SqlResponse.Failed) continue;
+                    index++;
                 }
-
                 tableModels.add(tableModel);
             } while (cursor.moveToNext());
         }
         cursor.close();
         return tableModels;
     }
-
 
     public static SqlResponse deleteTable(String tableName) {
         if (Utils.tableExist(tableName))
@@ -650,11 +599,8 @@ public class SQLiteManager extends SQLiteOpenHelper {
             return this;
         }
 
-        //TODO: Complete these limit method properly
-        public Select limit(int from, int to) {
-            this.limit = to;
-            return this;
-        }
+        //Todo: Add first here. Which will return one Model
+        //Todo: Add fill Cursor
 
         public Select innerJoin(String columnName) {
             this.columnWithForeignKey = columnName;
@@ -706,7 +652,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
     }
 
-
     public static <T extends Tableable> T find(Class<T> clazz, Integer id) {
         try {
             return find(clazz.newInstance(), id);
@@ -740,79 +685,28 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 null
         );
 
+        Field[] fields = tableModel.getClass().getFields();
+
+        Arrays.sort(fields, new Comparator<Field>() {
+            @Override
+            public int compare(Field field, Field t1) {
+                return field.getName().compareTo(t1.getName());
+            }
+        });
 
         if (cursor.moveToFirst()) {
-
-            Field[] fields = tableModel.getClass().getFields();
-
-            Arrays.sort(fields, new Comparator<Field>() {
-                @Override
-                public int compare(Field field, Field t1) {
-                    return field.getName().compareTo(t1.getName());
-                }
-            });
             int index = 0;
-
-            for (Field field : fields) {
-                if (!field.isAnnotationPresent(Column.class)) continue;
+            for (final Field field : fields) {
                 String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class))
                         ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : field.getType().getSimpleName();
-                try {
-                    switch (simpleNameOfDataType) {
-                        case "int":
-                            field.set(tableModel, cursor.getInt(index++));
-                            break;
-                        case "String":
-                            field.set(tableModel, cursor.getString(index++));
-                            break;
-                        case "double":
-                            field.set(tableModel, cursor.getDouble(index++));
-                            break;
-                        case "float":
-                            field.set(tableModel, cursor.getFloat(index++));
-                            break;
-                        case "short":
-                            field.set(tableModel, cursor.getShort(index++));
-                            break;
-                        case "long":
-                            field.set(tableModel, cursor.getLong(index++));
-                            break;
-                        case "byte":
-                            field.set(tableModel, cursor.getBlob(index++));
-                            break;
-                        case "boolean":
-                            field.set(tableModel, cursor.getInt(index++));
-                            break;
-                        case "Integer":
-                            field.set(tableModel, cursor.getInt(index++));
-                            break;
-                        case "Double":
-                            field.set(tableModel, cursor.getDouble(index++));
-                            break;
-                        case "Float":
-                            field.set(tableModel, cursor.getFloat(index++));
-                            break;
-                        case "Short":
-                            field.set(tableModel, cursor.getShort(index++));
-                            break;
-                        case "Long":
-                            field.set(tableModel, cursor.getLong(index++));
-                            break;
-                        case "char":
-                            field.set(tableModel, cursor.getString(index++));
-                            break;
-                        case "Byte":
-                            field.set(tableModel, cursor.getBlob(index++));
-                            break;
-                        case "Boolean":
-                            field.set(tableModel, cursor.getInt(index++));
-                            break;
-                        default:
-                            throw new UnknownDatatypeException(TAG + ": " + field.getType().getSimpleName() + " and " + simpleNameOfDataType + " is not supported. Unknown type from Cursor!");
+                SqlResponse response = Utils.readingSwitchAction(simpleNameOfDataType, field, tableModel, index, cursor, new AbstractDefaultCase() {
+                    @Override
+                    public void onDefault(Field field, int indexx, Cursor cursor) {
+                        throw new SqLiteManagerException(field.getType().getSimpleName() + " is not supported. Unknown type from Cursor!");
                     }
-                } catch (Exception e) {
-                    Log.e(TAG, e.getMessage());
-                }
+                });
+                if (response == SqlResponse.Failed) continue;
+                index++;
             }
             cursor.close();
             return tableModel;

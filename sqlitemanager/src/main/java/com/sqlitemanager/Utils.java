@@ -1,6 +1,10 @@
 package com.sqlitemanager;
 
+import android.database.Cursor;
+import android.util.Log;
+
 import com.sqlitemanager.Annotations.Column;
+import com.sqlitemanager.Annotations.ForeignKey;
 import com.sqlitemanager.Annotations.PrimaryKey;
 import com.sqlitemanager.Annotations.TableName;
 import com.sqlitemanager.DbPackModels.ColumnAnnotationModel;
@@ -48,12 +52,7 @@ public class Utils {
         throw new WrongTableNameException(TAG + " Table type not found");
     }
 
-    public static String getTableName(String className, ArrayList<Class> typeList) {
-        //className += "  ";
-        return className;
-    }
-
-    public static Field getPrimaryKeyField(Class clazz) {
+    static Field getPrimaryKeyField(Class clazz) {
         Field[] fields = clazz.getFields();
 
         for (Field item : fields) {
@@ -61,8 +60,70 @@ public class Utils {
                 return item;
             }
         }
-
         return null;
+    }
+
+    static <T extends Tableable> SqlResponse readingSwitchAction(String simpleNameOfDataType, final Field field, T tableModel, int index, Cursor cursor, AbstractDefaultCase defaultCase) {
+        if (!field.isAnnotationPresent(Column.class)) return SqlResponse.Failed;
+
+
+        try {
+            switch (simpleNameOfDataType) {
+                case "int":
+                    field.set(tableModel, cursor.getInt(index));
+                    break;
+                case "String":
+                    field.set(tableModel, cursor.getString(index));
+                    break;
+                case "double":
+                    field.set(tableModel, cursor.getDouble(index));
+                    break;
+                case "float":
+                    field.set(tableModel, cursor.getFloat(index));
+                    break;
+                case "short":
+                    field.set(tableModel, cursor.getShort(index));
+                    break;
+                case "long":
+                    field.set(tableModel, cursor.getLong(index));
+                    break;
+                case "byte":
+                    field.set(tableModel, cursor.getBlob(index));
+                    break;
+                case "boolean":
+                    field.set(tableModel, cursor.getInt(index));
+                    break;
+                case "Integer":
+                    field.set(tableModel, cursor.getInt(index));
+                    break;
+                case "Double":
+                    field.set(tableModel, cursor.getDouble(index));
+                    break;
+                case "Float":
+                    field.set(tableModel, cursor.getFloat(index));
+                    break;
+                case "Short":
+                    field.set(tableModel, cursor.getShort(index));
+                    break;
+                case "Long":
+                    field.set(tableModel, cursor.getLong(index));
+                    break;
+                case "char":
+                    field.set(tableModel, cursor.getString(index));
+                    break;
+                case "Byte":
+                    field.set(tableModel, cursor.getBlob(index));
+                    break;
+                case "Boolean":
+                    field.set(tableModel, cursor.getInt(index));
+                    break;
+                default:
+                    defaultCase.onDefault(field, index, cursor);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+        }
+        return SqlResponse.Successful;
     }
 
 }
