@@ -6,7 +6,8 @@ package com.sqlitemanager;
 
 public enum SortOrder {
     ASC(1, "ASC"),
-    DESC(2, "DESC");
+    DESC(2, "DESC"),
+    RANDOM(3, "RANDOM()");
 
     private int id;
     private String keyWord;

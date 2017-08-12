@@ -1,5 +1,6 @@
 package com.demoapp;
 
+import android.database.Cursor;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,6 +14,7 @@ import com.sqlitemanager.SQLiteManager;
 import com.sqlitemanager.SortOrder;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -43,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
         userModel.fullname = "First Last name";
         userModel.age = 12;
 
+        //SQLiteManager.getInstance().insert(userModel);
+
         //Inserting it to the table
         long feedback_1 = userModel.insert();
 
@@ -55,13 +59,6 @@ public class MainActivity extends AppCompatActivity {
         driver.fullname = "Some Fullname here";
         driver.email = "Some Email here";
 
-        //Creating foreign key model
-        CarModel carModelq = new CarModel();
-        carModelq.id = 1;
-
-        //Assigning it to main model
-        driver.carModel = carModelq;
-
         //Inserting to the table
         long feedback_2 = driver.insert();
 
@@ -70,19 +67,14 @@ public class MainActivity extends AppCompatActivity {
         driver.fullname = "Soeme Fullname here";
         driver.email = "Somee Email here";
 
-        carModelq.id = 2;
-
-        //Assigning it to main model
-        driver.carModel = carModelq;
         driver.insert();
+
         driver.birtdate = "12-01-12";
         driver.fullname = "Soeme Fulleename here";
         driver.email = "Somee Email herewe";
 
-        carModelq.id = 3;
 
         //Assigning it to main model
-        driver.carModel = carModelq;
         driver.insert();
 
 
@@ -100,7 +92,6 @@ public class MainActivity extends AppCompatActivity {
         //Inserting to the table
         long feedback_4 = carModel.insert();
 
-
         carModel.releaseDate = "12-12-12";
         carModel.model = "some modeal";
         carModel.name = "some naasme";
@@ -115,20 +106,27 @@ public class MainActivity extends AppCompatActivity {
         //Inserting to the table
         carModel.insert();
 
+        CityModel cityModel = new CityModel();
+        cityModel.id = 1;
+        cityModel.num_of_roads = 2;
+        cityModel.additionalInfo = "sdkkdkd";
 
-
+        //CityModel has a column named "name" which is "NOT NULL"
+        //So, since this object's name value is empty, this insertion
+        //will not happen and return -1
+        long asd = cityModel.insert();
 
         //This will assign the values from db data with id = 1
         //to myCarModel object.
         CarModel myCarModel = new CarModel();
         myCarModel.fill(1); // myCarModel contains data of columns where id = 1
 
+        DriverModel driverModel2 = new DriverModel();
+        driverModel2.fill(1);
+
         UserModel myUser = SQLiteManager.find(UserModel.class, 1); // where id = 1
 
         UserModel myUser2 = SQLiteManager.find("users", 1); // where id = 1
-
-
-
 
 
         //Get all data with type
@@ -140,31 +138,49 @@ public class MainActivity extends AppCompatActivity {
 
         //This will delete everything
         //(Database, Tables and all data in them)
-            //SQLiteManager.deleteDatabase();
+        //SQLiteManager.deleteDatabase();
 
         //This will also delete everything, but rebuild them again
         //(Only tables and Constraints, Not Data). All data will be gone
-            //SQLiteManager.refreshDatabase();
+        //SQLiteManager.refreshDatabase();
 
 
-        ArrayList<DriverModel> userModelsWithName = new SQLiteManager
+        List<DriverModel> driverModels = new SQLiteManager
                 .Select("drivers")
+                .where("id>?", "1")
+                .sort("id", SortOrder.ASC)
+                .limit(5)
+                .getList();
+
+
+        List<DriverModel> driverModels2 = new SQLiteManager
+                .Select(DriverModel.class)
+                .where("id>?", "1")
+                .sort("id", SortOrder.RANDOM)
+                .limit(2)
+                .getList();
+
+        Cursor cursor = new SQLiteManager
+                .Select(DriverModel.class)
                 .where("drivers.id>?", "1")
                 .sort("cars.id", SortOrder.ASC)
                 .limit(5)
                 .innerJoin("carId")
                 .columns("cars.id", "drivers.fullname", "cars.release_date", "drivers.id")
-                .get();
-
-//        Random, and first
-//        ArrayList<UserModel> userModels = new SQLiteManager
-//                .Select(UserModel.class)
-//                .where("id>? and name=?", "12", "name")
-//                .sort(SortOrder.ASC)
-//                .limit(5)
-//                .innerJoin("carId")
-//                .columns("id", "email")
-//                .fill();
+                .getCursor();
+//
+//        String[] names = cursor.getColumnNames();
+//        if (cursor.moveToFirst()) {
+//            do {
+//                String stringData = cursor.getString(cursor.getColumnIndex("column_name"));
+//                int intData = cursor.getInt(cursor.getColumnIndex("column_name"));
+//                // ...
+//                //Your code here
+//                // ...
+//            } while (cursor.moveToNext());
+//        }
+//        cursor.close();
+//
 
         int a = 123 + 32;
         a++;
