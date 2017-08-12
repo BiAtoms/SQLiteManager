@@ -384,7 +384,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
         return SqlResponse.Successful;
     }
 
-    //TODO: Complete this
+    //TODO: Make it compatible with several foreign key!
     private String getStringForeignKey(String columnWithForeignKey, String mainTableName) {
         String refColName = "";
         String refTableName = "";
@@ -406,20 +406,18 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
     @SuppressWarnings("unchecked")
     public static <T extends Tableable> ArrayList<T> all(String tableName) {
-        return sqLiteManager.selectAll(tableName, Utils.getTableClass(tableName, sqLiteManager.tableTypesList), null, null, null, null, null, null, null);
+        return sqLiteManager.selectMany(tableName, Utils.getTableClass(tableName, sqLiteManager.tableTypesList), null, null, null, null, null, null);
     }
 
     public static <T extends Tableable> ArrayList<T> all(Class<T> modelClass) {
-        return sqLiteManager.selectAll(Utils.getTableName(modelClass), modelClass, null, null, null, null, null, null, null);
+        return sqLiteManager.selectMany(Utils.getTableName(modelClass), modelClass, null, null, null, null, null, null);
     }
 
-    private <T extends Tableable> ArrayList<T> selectAll(String name, Class<T> modelClass, String[] args,
-                                                         String condition, SortOrder sortOrder,
-                                                         Integer limit, String columnWithForeignKey, String[] columns, String sortColumn) {
-
+    private Cursor selectManyCursor(String name, String[] args,
+                                    String condition, SortOrder sortOrder,
+                                    Integer limit, String columnWithForeignKey, String[] columns, String sortColumn) {
 
         SQLiteDatabase sqLiteDatabase = sqLiteManager.getReadableDatabase();
-
         String foreignKey = (columnWithForeignKey != null && !columnWithForeignKey.isEmpty()) ? getStringForeignKey(columnWithForeignKey, name) : "";
         String[] projectionn;
 
@@ -444,6 +442,47 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 sortText,
                 strLimit
         );
+        return cursor;
+    }
+
+    private Cursor selectManyModelCursor(String name, String[] args,
+                                         String condition, SortOrder sortOrder,
+                                         Integer limit, String[] columns, String sortColumn) {
+
+        SQLiteDatabase sqLiteDatabase = sqLiteManager.getReadableDatabase();
+        String[] projectionn;
+
+        if (columns == null) projectionn = null;
+        else projectionn = getColumnsForSelect(sqLiteDatabase, name, columns);
+
+        String sortText = null;
+
+        if (sortColumn != null)
+            sortText = sortColumn + " " + sortOrder.getKeyWord();
+        String strLimit = (limit == null) ? null : limit.toString();
+
+        Cursor cursor;
+
+        cursor = sqLiteDatabase.query(
+                name,
+                projectionn,
+                condition,
+                args,
+                null,
+                null,
+                sortText,
+                strLimit
+        );
+        return cursor;
+    }
+
+    private <T extends Tableable> ArrayList<T> selectMany(String name, Class<T> modelClass, String[] args,
+                                                          String condition, SortOrder sortOrder,
+                                                          Integer limit,
+                                                          String[] columns, String sortColumn) {
+
+        Cursor cursor = selectManyModelCursor(name, args, condition,
+                sortOrder, limit, columns, sortColumn);
 
         ArrayList<T> tableModels = new ArrayList<>();
 
@@ -567,11 +606,17 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
         public <T extends Tableable> Select(Class<T> tableClass) {
             this.tableClass = tableClass;
+            this.tableName = Utils.getTableName(tableClass);
         }
 
         @SuppressWarnings("unchecked")
-        public <T extends Tableable> ArrayList<T> get() {
-            return sqLiteManager.selectAll(tableName, tableClass, args,
+        public <T extends Tableable> List<T> getList() {
+            return sqLiteManager.selectMany(tableName, tableClass, args,
+                    condition, sortOrder, limit, columns, sortColumn);
+        }
+
+        public Cursor getCursor() {
+            return sqLiteManager.selectManyCursor(tableName, args,
                     condition, sortOrder, limit, columnWithForeignKey, columns, sortColumn);
         }
 
@@ -585,6 +630,10 @@ public class SQLiteManager extends SQLiteOpenHelper {
         public Select sort(String sortColumn, SortOrder order) {
             this.sortOrder = order;
             this.sortColumn = sortColumn;
+            if (SortOrder.RANDOM == order) {
+                this.sortColumn = "";
+            }
+
             return this;
         }
 
@@ -599,9 +648,10 @@ public class SQLiteManager extends SQLiteOpenHelper {
             return this;
         }
 
-        //Todo: Add first here. Which will return one Model
-        //Todo: Add fill Cursor
+        //Todo: Add 'first()' here. Which will return one Model
 
+
+        //TODO: Make it compatible with several foreign key!
         public Select innerJoin(String columnName) {
             this.columnWithForeignKey = columnName;
             return this;
@@ -652,6 +702,39 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
     }
 
+
+    private static <T extends Tableable> int update(T tableModel) {
+        SQLiteDatabase writable = sqLiteManager.getWritableDatabase();
+        String whereClause = null;
+        String[] whereArgs = null;
+
+        Field[] fields = tableModel.getClass().getFields();
+        ContentValues contentValues = new ContentValues();
+
+        for (Field field : fields) {
+            String colName;
+            if (Utils.isColumn(field)) colName = Utils.getMemberColumnName(field);
+            else continue;
+
+            try {
+                if (field.isAnnotationPresent(PrimaryKey.class)) {
+                    whereClause = Utils.getMemberColumnName(field) + "=?";
+                    whereArgs = new String[]{field.get(tableModel).toString()};
+                }
+
+                contentValues.put(colName, field.get(tableModel).toString());
+            } catch (Exception e) {
+                throw new SqLiteManagerException(e.getMessage());
+            }
+        }
+        if (whereClause == null) {
+            Log.e(TAG, "No primary key value found in object!");
+            return -1;
+        }
+        return writable.updateWithOnConflict(Utils.getTableName(tableModel.getClass()), contentValues, whereClause, whereArgs, SQLiteDatabase.CONFLICT_IGNORE);
+    }
+
+
     public static <T extends Tableable> T find(Class<T> clazz, Integer id) {
         try {
             return find(clazz.newInstance(), id);
@@ -669,7 +752,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
     }
 
-    static <T extends Tableable> T find(T tableModel, Integer id) {
+    static <T extends Tableable> T find(final T tableModel, Integer id) {
         Cursor cursor;
         SQLiteDatabase sqLiteDatabase = sqLiteManager.getReadableDatabase();
         String name = Utils.getTableName(tableModel.getClass());
@@ -697,12 +780,17 @@ public class SQLiteManager extends SQLiteOpenHelper {
         if (cursor.moveToFirst()) {
             int index = 0;
             for (final Field field : fields) {
-                String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class))
-                        ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : field.getType().getSimpleName();
+                String simpleNameOfDataType = field.getType().getSimpleName();
+
                 SqlResponse response = Utils.readingSwitchAction(simpleNameOfDataType, field, tableModel, index, cursor, new AbstractDefaultCase() {
                     @Override
-                    public void onDefault(Field field, int indexx, Cursor cursor) {
-                        throw new SqLiteManagerException(field.getType().getSimpleName() + " is not supported. Unknown type from Cursor!");
+                    public void onDefault(Field field, int indexx, Cursor cursorr) {
+
+                        try {
+                            field.set(tableModel, find((Tableable) field.getType().newInstance(), cursorr.getInt(indexx)));
+                        } catch (Exception e) {
+                            throw new SqLiteManagerException(e.getMessage());
+                        }
                     }
                 });
                 if (response == SqlResponse.Failed) continue;

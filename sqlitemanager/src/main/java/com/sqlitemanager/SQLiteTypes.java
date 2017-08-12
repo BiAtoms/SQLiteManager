@@ -5,6 +5,8 @@ package com.sqlitemanager;
  */
 
 public enum SQLiteTypes {
+
+    //Todo: remove needless and unused code
     INTEGER("int", "INTEGER", int.class),
     INTEGER_NULLABLE("Integer", "INTEGER", Integer.class),
     STRING("String", "TEXT", String.class),
