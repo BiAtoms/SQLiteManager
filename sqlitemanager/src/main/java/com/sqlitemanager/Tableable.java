@@ -12,4 +12,6 @@ public interface Tableable {
     public long update();
 
     public long delete();
+
+    public void get(Integer id);
 }

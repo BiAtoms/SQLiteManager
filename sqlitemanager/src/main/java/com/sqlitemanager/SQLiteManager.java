@@ -388,6 +388,8 @@ public class SQLiteManager extends SQLiteOpenHelper {
     private String getStringForeignKey(String columnWithForeignKey, String mainTableName) {
         String refColName = "";
         String refTableName = "";
+        String result;
+
         for (TableModel table : databaseTables) {
             for (ConstraintModel constraintModel : table.getConstraintModels()) {
                 if (constraintModel.sourceColumnName.equals(columnWithForeignKey)) {
@@ -398,50 +400,50 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 }
             }
         }
-
-        return " INNER JOIN " + refTableName + " ON " + mainTableName + "." + columnWithForeignKey + "=" + refTableName + "." + refColName;
+        result = " INNER JOIN " + refTableName + " ON " + mainTableName + "." + columnWithForeignKey + "=" + refTableName + "." + refColName + " ";
+        return result;
     }
 
     @SuppressWarnings("unchecked")
     public static <T extends Tableable> ArrayList<T> all(String tableName) {
-        return sqLiteManager.selectAll(tableName, Utils.getTableClass(tableName, sqLiteManager.tableTypesList), null, null, null, null, null, null);
+        return sqLiteManager.selectAll(tableName, Utils.getTableClass(tableName, sqLiteManager.tableTypesList), null, null, null, null, null, null, null);
     }
 
     public static <T extends Tableable> ArrayList<T> all(Class<T> modelClass) {
-        return sqLiteManager.selectAll(Utils.getTableName(modelClass), modelClass, null, null, null, null, null, null);
+        return sqLiteManager.selectAll(Utils.getTableName(modelClass), modelClass, null, null, null, null, null, null, null);
     }
+
 
     private <T extends Tableable> ArrayList<T> selectAll(String name, Class<T> modelClass, String[] args,
                                                          String condition, SortOrder sortOrder,
-                                                         Integer limit, String columnWithForeignKey, String[] columns) {
-        Cursor cursor;
+                                                         Integer limit, String columnWithForeignKey, String[] columns, String sortColumn) {
+
 
         SQLiteDatabase sqLiteDatabase = sqLiteManager.getReadableDatabase();
 
-
-        /**
-         * //TODO: Add this to make Foreign key property enabled.
-         *   Cursor cursor = db.query(
-         NoteContract.Note.TABLE_NAME + " LEFT OUTER JOIN authors ON notes._id=authors.note_id",
-         projection,
-         selection,
-         selectionArgs,
-         null,
-         null,
-         "notes._id");
-         */
-
         String foreignKey = (columnWithForeignKey != null && !columnWithForeignKey.isEmpty()) ? getStringForeignKey(columnWithForeignKey, name) : "";
-        String[] projectionn = getColumnsForSelect(sqLiteDatabase, name, columns);
+        String[] projectionn;
+
+        if (columns == null) projectionn = null;
+        else projectionn = getColumnsForSelect(sqLiteDatabase, name, columns);
+
+        String sortText = null;
+
+        if (sortColumn != null)
+            sortText = sortColumn + " " + sortOrder.getKeyWord();
+        String strLimit = (limit == null) ? null : limit.toString();
+
+        Cursor cursor;
 
         cursor = sqLiteDatabase.query(
                 name + foreignKey,
                 projectionn,
+                condition,
+                args,
                 null,
                 null,
-                null,
-                null,
-                null
+                sortText,
+                strLimit
         );
 
         ArrayList<T> tableModels = new ArrayList<>();
@@ -456,11 +458,21 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 }
 
                 Field[] fields = tableModel.getClass().getFields();
+
+                Arrays.sort(fields, new Comparator<Field>() {
+                    @Override
+                    public int compare(Field field, Field t1) {
+                        return field.getName().compareTo(t1.getName());
+                    }
+                });
                 int index = 0;
+
+                String[] names = cursor.getColumnNames();
 
                 for (Field field : fields) {
                     if (!field.isAnnotationPresent(Column.class)) continue;
-                    String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class)) ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : field.getType().getSimpleName();
+                    String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class))
+                            ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : field.getType().getSimpleName();
 
                     try {
                         switch (simpleNameOfDataType) {
@@ -527,6 +539,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
         return tableModels;
     }
 
+
     public static SqlResponse deleteTable(String tableName) {
         if (Utils.tableExist(tableName))
             sqLiteManager.getWritableDatabase().execSQL("DROP TABLE IF EXISTS " + tableName);
@@ -560,19 +573,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
         if (columns != null && columns.length != 0) {
             return columns;
         }
-        Cursor dbCursor;
-
-        try {
-            dbCursor = sqLiteDatabase.query(name, null, null, null, null, null, null);
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
-            return null;
-        }
-        String[] projections = dbCursor.getColumnNames();
-
-        dbCursor.close();
-
-        return projections;
+        return null;
     }
 
     @Override
@@ -607,6 +608,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
         private SortOrder sortOrder = SortOrder.ASC;
         private int limit = -1;
         private String[] columns;
+        private String sortColumn;
         private String columnWithForeignKey;
 
         public Select(String tableName) {
@@ -621,7 +623,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
         @SuppressWarnings("unchecked")
         public <T extends Tableable> ArrayList<T> get() {
             return sqLiteManager.selectAll(tableName, tableClass, args,
-                    condition, sortOrder, limit, columnWithForeignKey, columns);
+                    condition, sortOrder, limit, columnWithForeignKey, columns, sortColumn);
         }
 
         public Select where(String condition, String... args) {
@@ -631,8 +633,9 @@ public class SQLiteManager extends SQLiteOpenHelper {
             return this;
         }
 
-        public Select sort(SortOrder order) {
+        public Select sort(String sortColumn, SortOrder order) {
             this.sortOrder = order;
+            this.sortColumn = sortColumn;
             return this;
         }
 
@@ -703,4 +706,118 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
     }
 
+
+    public static <T extends Tableable> T find(Class<T> clazz, Integer id) {
+        try {
+            return find(clazz.newInstance(), id);
+        } catch (Exception e) {
+            throw new SqLiteManagerException("Failed to instantiate: " + e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends Tableable> T find(String tableName, Integer id) {
+        try {
+            return find((T) Utils.getTableClass(tableName, sqLiteManager.tableTypesList).newInstance(), id);
+        } catch (Exception e) {
+            throw new SqLiteManagerException("Failed to instantiate: " + e.getMessage());
+        }
+    }
+
+    static <T extends Tableable> T find(T tableModel, Integer id) {
+        Cursor cursor;
+        SQLiteDatabase sqLiteDatabase = sqLiteManager.getReadableDatabase();
+        String name = Utils.getTableName(tableModel.getClass());
+        String memberColumnName = Utils.getMemberColumnName(Utils.getPrimaryKeyField(tableModel.getClass()));
+
+        cursor = sqLiteDatabase.query(
+                name,
+                null,
+                memberColumnName + "=?",
+                new String[]{id.toString()},
+                null,
+                null,
+                null
+        );
+
+
+        if (cursor.moveToFirst()) {
+
+            Field[] fields = tableModel.getClass().getFields();
+
+            Arrays.sort(fields, new Comparator<Field>() {
+                @Override
+                public int compare(Field field, Field t1) {
+                    return field.getName().compareTo(t1.getName());
+                }
+            });
+            int index = 0;
+
+            for (Field field : fields) {
+                if (!field.isAnnotationPresent(Column.class)) continue;
+                String simpleNameOfDataType = (field.isAnnotationPresent(ForeignKey.class))
+                        ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : field.getType().getSimpleName();
+                try {
+                    switch (simpleNameOfDataType) {
+                        case "int":
+                            field.set(tableModel, cursor.getInt(index++));
+                            break;
+                        case "String":
+                            field.set(tableModel, cursor.getString(index++));
+                            break;
+                        case "double":
+                            field.set(tableModel, cursor.getDouble(index++));
+                            break;
+                        case "float":
+                            field.set(tableModel, cursor.getFloat(index++));
+                            break;
+                        case "short":
+                            field.set(tableModel, cursor.getShort(index++));
+                            break;
+                        case "long":
+                            field.set(tableModel, cursor.getLong(index++));
+                            break;
+                        case "byte":
+                            field.set(tableModel, cursor.getBlob(index++));
+                            break;
+                        case "boolean":
+                            field.set(tableModel, cursor.getInt(index++));
+                            break;
+                        case "Integer":
+                            field.set(tableModel, cursor.getInt(index++));
+                            break;
+                        case "Double":
+                            field.set(tableModel, cursor.getDouble(index++));
+                            break;
+                        case "Float":
+                            field.set(tableModel, cursor.getFloat(index++));
+                            break;
+                        case "Short":
+                            field.set(tableModel, cursor.getShort(index++));
+                            break;
+                        case "Long":
+                            field.set(tableModel, cursor.getLong(index++));
+                            break;
+                        case "char":
+                            field.set(tableModel, cursor.getString(index++));
+                            break;
+                        case "Byte":
+                            field.set(tableModel, cursor.getBlob(index++));
+                            break;
+                        case "Boolean":
+                            field.set(tableModel, cursor.getInt(index++));
+                            break;
+                        default:
+                            throw new UnknownDatatypeException(TAG + ": " + field.getType().getSimpleName() + " and " + simpleNameOfDataType + " is not supported. Unknown type from Cursor!");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, e.getMessage());
+                }
+            }
+            cursor.close();
+            return tableModel;
+        }
+        cursor.close();
+        return tableModel;
+    }
 }
