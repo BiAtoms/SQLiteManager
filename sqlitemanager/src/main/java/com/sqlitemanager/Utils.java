@@ -126,4 +126,8 @@ public class Utils {
         return SqlResponse.Successful;
     }
 
+    static boolean isColumn(Field field) {
+        return field.isAnnotationPresent(Column.class);
+    }
+
 }
