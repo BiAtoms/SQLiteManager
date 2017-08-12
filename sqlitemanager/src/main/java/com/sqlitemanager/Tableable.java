@@ -7,11 +7,12 @@ import java.util.ArrayList;
  */
 
 public interface Tableable {
+
     public long insert();
 
     public long update();
 
     public long delete();
 
-    public void get(Integer id);
+    public void fill(Integer id);
 }

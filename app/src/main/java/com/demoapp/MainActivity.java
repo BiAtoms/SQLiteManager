@@ -116,14 +116,19 @@ public class MainActivity extends AppCompatActivity {
         carModel.insert();
 
 
+
+
         //This will assign the values from db data with id = 1
         //to myCarModel object.
         CarModel myCarModel = new CarModel();
-        myCarModel.get(1); // myCarModel contains data of columns where id = 1
+        myCarModel.fill(1); // myCarModel contains data of columns where id = 1
 
         UserModel myUser = SQLiteManager.find(UserModel.class, 1); // where id = 1
 
         UserModel myUser2 = SQLiteManager.find("users", 1); // where id = 1
+
+
+
 
 
         //Get all data with type
@@ -135,11 +140,11 @@ public class MainActivity extends AppCompatActivity {
 
         //This will delete everything
         //(Database, Tables and all data in them)
-        //SQLiteManager.deleteDatabase();
+            //SQLiteManager.deleteDatabase();
 
         //This will also delete everything, but rebuild them again
         //(Only tables and Constraints, Not Data). All data will be gone
-        //SQLiteManager.refreshDatabase();
+            //SQLiteManager.refreshDatabase();
 
 
         ArrayList<DriverModel> userModelsWithName = new SQLiteManager
@@ -159,9 +164,10 @@ public class MainActivity extends AppCompatActivity {
 //                .limit(5)
 //                .innerJoin("carId")
 //                .columns("id", "email")
-//                .get();
+//                .fill();
 
         int a = 123 + 32;
+        a++;
         Log.d(TAG, "Smth : " + a);
 
         // Get (Select) random data

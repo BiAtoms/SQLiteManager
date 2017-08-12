@@ -19,7 +19,7 @@ public class AbstractTableModel implements Tableable {
     }
 
     @Override
-    public void get(Integer id) {
+    public void fill(Integer id) {
         SQLiteManager.find(this, id);
     }
 }
