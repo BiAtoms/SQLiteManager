@@ -6,7 +6,6 @@ import com.sqlitemanager.Annotations.Default;
 import com.sqlitemanager.Annotations.PrimaryKey;
 import com.sqlitemanager.Annotations.TableName;
 import com.sqlitemanager.SQLiteManager;
-import com.sqlitemanager.SQLiteTypes;
 import com.sqlitemanager.Tableable;
 
 /**

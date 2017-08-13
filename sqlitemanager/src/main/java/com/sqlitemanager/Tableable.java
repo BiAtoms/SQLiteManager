@@ -15,4 +15,5 @@ public interface Tableable {
     public long delete();
 
     public void fill(Integer id);
+
 }

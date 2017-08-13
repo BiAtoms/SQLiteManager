@@ -85,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
 
         //Creating model
         CarModel carModel = new CarModel();
+        carModel.id = 2;
         carModel.releaseDate = "12-12-12";
         carModel.model = "some model";
         carModel.name = "some name";
@@ -105,6 +106,9 @@ public class MainActivity extends AppCompatActivity {
 
         //Inserting to the table
         carModel.insert();
+
+        carModel.name = "Amiraslan";
+        long sdd = carModel.update();
 
         CityModel cityModel = new CityModel();
         cityModel.id = 1;

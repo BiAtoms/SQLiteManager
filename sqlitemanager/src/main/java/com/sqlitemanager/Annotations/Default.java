@@ -1,7 +1,5 @@
 package com.sqlitemanager.Annotations;
 
-import com.sqlitemanager.SQLiteTypes;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

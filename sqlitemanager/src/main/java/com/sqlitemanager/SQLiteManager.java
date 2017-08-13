@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 
 /**
@@ -116,7 +117,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
             int index = 0;
             for (ColumnModel tableColumnModel : databaseTable.columnModels) {
                 index++;
-                query += tableColumnModel.name + " " + SQLiteTypes.findType(tableColumnModel.datatype);
+                query += tableColumnModel.name + " " + new SQLiteJavaTypes().getSQLiteType(tableColumnModel.datatype);
                 if (tableColumnModel.hasInlineConstraint) {
                     for (ConstraintModel constraint : tableColumnModel.constraintModels) {
                         query += " " + constraint.getConstraintKeyword();
@@ -195,7 +196,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 if (!((Column) columnName).value().equals(columnDefaultValue)) {
                     columnAnnotationModel.columnName = ((Column) columnName).value();
                 }
-                String simpleNameOfDataType = (foreignKey != null) ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : column.getType().getSimpleName();
+                String simpleNameOfDataType = (foreignKey != null) ? "Integer" : column.getType().getSimpleName();
                 currentColumnModel = new ColumnModel(columnAnnotationModel.columnName, simpleNameOfDataType);
                 currentColumnModel.hasInlineConstraint = false;
 
@@ -259,7 +260,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
         prepareCreateTablesQueryStr();
     }
 
-    public <T extends Tableable> long insert(T tableModel) {
+    static <T extends Tableable> long insert(T tableModel) {
         String name = Utils.getTableName(tableModel.getClass());
 
         ContentValues contentValues = new ContentValues();
@@ -280,7 +281,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
             boolean isForeignKey = field.isAnnotationPresent(ForeignKey.class);
 
             String simpleNameOfDataType = (isForeignKey)
-                    ? SQLiteTypes.INTEGER_NULLABLE.getJavaType() : field.getType().getSimpleName();
+                    ? "Integer" : field.getType().getSimpleName();
 
             try {
                 //Todo: Look up for default functionality in integers. It does not work
@@ -703,7 +704,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
     }
 
 
-    private static <T extends Tableable> int update(T tableModel) {
+    static <T extends Tableable> int update(T tableModel) {
         SQLiteDatabase writable = sqLiteManager.getWritableDatabase();
         String whereClause = null;
         String[] whereArgs = null;
@@ -719,7 +720,9 @@ public class SQLiteManager extends SQLiteOpenHelper {
             try {
                 if (field.isAnnotationPresent(PrimaryKey.class)) {
                     whereClause = Utils.getMemberColumnName(field) + "=?";
-                    whereArgs = new String[]{field.get(tableModel).toString()};
+                    int idValue = (int) field.get(tableModel);
+                    if (idValue == 0) return -1;
+                    whereArgs = new String[]{String.format(Locale.getDefault(), "%d", idValue)};
                 }
 
                 contentValues.put(colName, field.get(tableModel).toString());
