@@ -48,7 +48,6 @@ public class MainActivityTest {
 
     @Test
     public void testInsertData() {
-
         UserModel userModel = new UserModel();
         userModel.profilePicture = "some image uri";
         userModel.fullname = "First Last name";
