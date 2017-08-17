@@ -463,7 +463,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
         if (sortColumn != null)
             sortText = sortColumn + " " + sortOrder.getKeyWord();
-        String strLimit = (limit == null) ? null : limit.toString();
+        String strLimit = (limit == null || limit == -1) ? null : limit.toString();
 
         Cursor cursor;
 
@@ -691,8 +691,10 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
 
         public SQLiteManager buildDatabase() {
-            if (sqLiteManager != null)
-                throw new RuntimeException("SQLiteManager has already been initialized once");
+            if (sqLiteManager != null) {
+                Log.e(TAG, "SQLiteManager has already been initialized once");
+                return sqLiteManager;
+            }
             sqLiteManager = new SQLiteManager(this);
             return sqLiteManager;
         }
@@ -723,8 +725,9 @@ public class SQLiteManager extends SQLiteOpenHelper {
                     if (idValue == 0) return -1;
                     whereArgs = new String[]{String.format(Locale.getDefault(), "%d", idValue)};
                 }
-
-                contentValues.put(colName, field.get(tableModel).toString());
+                Object o = field.get(tableModel);
+                if (o == null) continue;
+                contentValues.put(colName, o.toString());
             } catch (Exception e) {
                 throw new SqLiteManagerException(e.getMessage());
             }
@@ -786,7 +789,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 long response = Utils.readingSwitchAction(simpleNameOfDataType, field, tableModel, index, cursor, new AbstractDefaultCase() {
                     @Override
                     public void onDefault(Field field, int indexx, Cursor cursorr) {
-
                         try {
                             field.set(tableModel, find((Tableable) field.getType().newInstance(), cursorr.getInt(indexx)));
                         } catch (Exception e) {
@@ -801,7 +803,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
             return tableModel;
         }
         cursor.close();
-        return tableModel;
+        return null;
     }
 
     static <T extends Tableable> long delete(T tableModel) {
@@ -818,4 +820,34 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
         return result;
     }
+
+   public static long delete(String tableName, Integer id) {
+
+        Field field = Utils.getPrimaryKeyField(Utils.getTableClass(tableName, sqLiteManager.tableTypesList));
+        if (field == null)
+            throw new SqLiteManagerException("No primary key found in table " + tableName.getClass().getSimpleName());
+        String prmrKeyFieldName = field.getName();
+        long result;
+        try {
+            result = sqLiteManager.getWritableDatabase().delete(tableName, prmrKeyFieldName + "=?", new String[]{id.toString()});
+        } catch (Exception e) {
+            throw new SqLiteManagerException(e.getMessage());
+        }
+        return result;
+    }
+
+    public static boolean exists(String tableName, Integer id) {
+        String columnName = Utils.getMemberColumnName(Utils.getPrimaryKeyField(Utils.getTableClass(tableName, sqLiteManager.tableTypesList)));
+        Cursor cursor = sqLiteManager.getReadableDatabase().rawQuery("SELECT * FROM " + tableName + " WHERE " +
+                columnName + " = ?", new String[]{id.toString()});
+
+        int result = 0;
+        if (cursor.moveToFirst())
+            result = cursor.getInt(cursor.getColumnIndex(columnName));
+
+        cursor.close();
+
+        return result > 0;
+    }
+
 }
