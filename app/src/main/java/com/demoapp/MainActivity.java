@@ -34,8 +34,7 @@ public class MainActivity extends AppCompatActivity {
                         CarModel.class,
                         DriverModel.class,
                         CityModel.class,
-                        UserModel.class,
-                        SmthModel.class)
+                        UserModel.class)
                 .buildDatabase();
 
 
