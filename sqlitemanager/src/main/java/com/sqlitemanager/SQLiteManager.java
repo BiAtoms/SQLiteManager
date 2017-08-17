@@ -3,6 +3,7 @@ package com.sqlitemanager;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -36,7 +37,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-
 /**
  * Created by aslan on 5/10/2017.
  */
@@ -45,9 +45,8 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
     protected final static String TAG = "SQLiteManager";
 
+    //Todo: this is a serious problem. Solve it! HINT: https://github.com/prashantsolanki3/Secure-Pref-Manager/blob/master/secureprefs/src/main/java/com/prashantsolanki/secureprefmanager/SecurePrefManagerInit.java
     private static SQLiteManager sqLiteManager = null;
-
-    //TODO: Replace ArrayLists with Arrays or Lists as much as possible for the sake of efficiency;
 
     private ArrayList<Class> tableTypesList;
 
@@ -57,20 +56,23 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
     private ArrayList<String> tablesNames = new ArrayList<>();
 
-    private Context context;
+    private String databaseName;
+    private int databaseVersion;
 
-    private Builder builder;
 
     private boolean willBeUpdated;
+
+    //Todo: Wright test cases for all methods!
 
     private SQLiteManager(Builder builder) {
         super(builder.context, builder.databaseName, null, builder.databaseVersion);
         Log.i("Database operations", "Database created or opened...");
-        this.builder = builder;
-        tableTypesList = builder.classes;
-        context = builder.context;
 
+        databaseName = builder.databaseName;
+        databaseVersion = builder.databaseVersion;
+        tableTypesList = builder.classes;
         willBeUpdated = builder.willBeUpdated;
+
         findAllAnnotatedFields();
     }
 
@@ -134,13 +136,19 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
     }
 
-    public static void deleteDatabase() {
-        sqLiteManager.context.deleteDatabase(sqLiteManager.getDatabaseName());
+    public static void deleteDatabase(Context context) {
+        context.deleteDatabase(sqLiteManager.getDatabaseName());
     }
 
-    public static void refreshDatabase() {
-        deleteDatabase();
-        sqLiteManager = new SQLiteManager(sqLiteManager.builder);
+    public static void refreshDatabase(Context context) {
+        deleteDatabase(context);
+        SQLiteManager.Builder newBuilder = new SQLiteManager.Builder(context)
+                .setDBName(sqLiteManager.databaseName)
+                .setDBVersion(sqLiteManager.databaseVersion)
+                .setWillBeUpdated(sqLiteManager.willBeUpdated)
+                .setTableList(sqLiteManager.tableTypesList.toArray(new Class[sqLiteManager.tableTypesList.size()]));
+
+        sqLiteManager = new SQLiteManager(newBuilder);
     }
 
     private void findAllAnnotatedFields() {
@@ -379,12 +387,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
     }
 
-    public <T extends Tableable> SqlResponse delete(T tableModel) {
-        String tableName = Utils.getTableName(tableModel.getClass());
-        sqLiteManager.getWritableDatabase().delete(tableName, "?=?", new String[]{"1", "jack"});
-        return SqlResponse.Successful;
-    }
-
     //TODO: Make it compatible with several foreign key!
     private String getStringForeignKey(String columnWithForeignKey, String mainTableName) {
         String refColName = "";
@@ -416,7 +418,8 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
     private Cursor selectManyCursor(String name, String[] args,
                                     String condition, SortOrder sortOrder,
-                                    Integer limit, String columnWithForeignKey, String[] columns, String sortColumn) {
+                                    Integer limit, String columnWithForeignKey,
+                                    String[] columns, String sortColumn) {
 
         SQLiteDatabase sqLiteDatabase = sqLiteManager.getReadableDatabase();
         String foreignKey = (columnWithForeignKey != null && !columnWithForeignKey.isEmpty()) ? getStringForeignKey(columnWithForeignKey, name) : "";
@@ -509,7 +512,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                 for (final Field field : fields) {
                     String simpleNameOfDataType = field.getType().getSimpleName();
 
-                    SqlResponse result = Utils.readingSwitchAction(simpleNameOfDataType, field, tableModel, index, cursor, new AbstractDefaultCase() {
+                    long result = Utils.readingSwitchAction(simpleNameOfDataType, field, tableModel, index, cursor, new AbstractDefaultCase() {
                         @Override
                         public void onDefault(Field field, int indexx, Cursor cursorr) {
                             try {
@@ -519,7 +522,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                             }
                         }
                     });
-                    if (result == SqlResponse.Failed) continue;
+                    if (result == -1) continue;
                     index++;
                 }
                 tableModels.add(tableModel);
@@ -542,19 +545,17 @@ public class SQLiteManager extends SQLiteOpenHelper {
         return deleteTable(Utils.getTableName(tableClass));
     }
 
-    public static SqlResponse clearTableData(String tableName) {
+    public static long clearTableData(String tableName) {
         long result;
         if (Utils.tableExist(tableName))
-            result = sqLiteManager.getWritableDatabase().delete(tableName, "1=1", null);
+            result = sqLiteManager.getWritableDatabase().delete(tableName, "1", null);
         else
-            return SqlResponse.TableNotExist;
+            return -1;
 
-        if (result > 0)
-            return SqlResponse.Successful;
-        return SqlResponse.Failed;
+        return result;
     }
 
-    public static <T extends Tableable> SqlResponse clearTableData(Class<T> tableClass) {
+    public static <T extends Tableable> long clearTableData(Class<T> tableClass) {
         return clearTableData(Utils.getTableName(tableClass));
     }
 
@@ -589,7 +590,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
 
     //TODO: Name this as QueryBuilder
     public static class Select {
-
         private Class tableClass;
         private String tableName;
         private String[] args;
@@ -703,7 +703,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
     }
 
-
     static <T extends Tableable> int update(T tableModel) {
         SQLiteDatabase writable = sqLiteManager.getWritableDatabase();
         String whereClause = null;
@@ -736,7 +735,6 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
         return writable.updateWithOnConflict(Utils.getTableName(tableModel.getClass()), contentValues, whereClause, whereArgs, SQLiteDatabase.CONFLICT_IGNORE);
     }
-
 
     public static <T extends Tableable> T find(Class<T> clazz, Integer id) {
         try {
@@ -785,7 +783,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
             for (final Field field : fields) {
                 String simpleNameOfDataType = field.getType().getSimpleName();
 
-                SqlResponse response = Utils.readingSwitchAction(simpleNameOfDataType, field, tableModel, index, cursor, new AbstractDefaultCase() {
+                long response = Utils.readingSwitchAction(simpleNameOfDataType, field, tableModel, index, cursor, new AbstractDefaultCase() {
                     @Override
                     public void onDefault(Field field, int indexx, Cursor cursorr) {
 
@@ -796,7 +794,7 @@ public class SQLiteManager extends SQLiteOpenHelper {
                         }
                     }
                 });
-                if (response == SqlResponse.Failed) continue;
+                if (response == -1) continue;
                 index++;
             }
             cursor.close();
@@ -804,5 +802,20 @@ public class SQLiteManager extends SQLiteOpenHelper {
         }
         cursor.close();
         return tableModel;
+    }
+
+    static <T extends Tableable> long delete(T tableModel) {
+        String tableName = Utils.getTableName(tableModel.getClass());
+        Field field = Utils.getPrimaryKeyField(tableModel.getClass());
+        if (field == null)
+            throw new SqLiteManagerException("No primary key found in table " + tableName.getClass().getSimpleName());
+        String prmrKeyFieldName = field.getName();
+        long result;
+        try {
+            result = sqLiteManager.getWritableDatabase().delete(tableName, prmrKeyFieldName + "=?", new String[]{field.get(tableModel).toString()});
+        } catch (Exception e) {
+            throw new SqLiteManagerException(e.getMessage());
+        }
+        return result;
     }
 }

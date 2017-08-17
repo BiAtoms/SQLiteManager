@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
         userModel.fullname = "First Last name";
         userModel.age = 12;
 
+        userModel.delete();
         //SQLiteManager.getInstance().insert(userModel);
 
         //Inserting it to the table
@@ -172,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
                 .innerJoin("carId")
                 .columns("cars.id", "drivers.fullname", "cars.release_date", "drivers.id")
                 .getCursor();
-//
+
 //        String[] names = cursor.getColumnNames();
 //        if (cursor.moveToFirst()) {
 //            do {

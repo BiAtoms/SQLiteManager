@@ -63,8 +63,8 @@ public class Utils {
         return null;
     }
 
-    static <T extends Tableable> SqlResponse readingSwitchAction(String simpleNameOfDataType, final Field field, T tableModel, int index, Cursor cursor, AbstractDefaultCase defaultCase) {
-        if (!field.isAnnotationPresent(Column.class)) return SqlResponse.Failed;
+    static <T extends Tableable> long readingSwitchAction(String simpleNameOfDataType, final Field field, T tableModel, int index, Cursor cursor, AbstractDefaultCase defaultCase) {
+        if (!field.isAnnotationPresent(Column.class)) return -1;
 
 
         try {
@@ -123,7 +123,7 @@ public class Utils {
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
         }
-        return SqlResponse.Successful;
+        return 1;
     }
 
     static boolean isColumn(Field field) {

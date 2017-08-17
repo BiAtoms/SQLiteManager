@@ -15,7 +15,7 @@ public class AbstractTableModel implements Tableable {
     }
 
     public long delete() {
-        return -1;
+        return SQLiteManager.delete(this);
     }
 
     @Override
